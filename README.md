@@ -25,11 +25,11 @@ Salud y Bienestar · Medio Ambiente · Seguridad y Convivencia
 
 ## Cómo probarlo en tu computador
 
-Necesitas [Node.js](https://nodejs.org) 20 o superior.
+Necesitas [Node.js](https://nodejs.org) 20 o superior y [pnpm](https://pnpm.io). Si no tienes pnpm, actívalo una vez con `corepack enable pnpm`.
 
 ```powershell
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 Abre la dirección que aparece en la terminal (normalmente http://localhost:5173).
@@ -38,9 +38,9 @@ Abre la dirección que aparece en la terminal (normalmente http://localhost:5173
 
 | Comando | Para qué sirve |
 | --- | --- |
-| `npm run build` | Genera la app lista para publicar en la carpeta `dist` |
-| `npm run build:single` | Genera un único `index.html` autocontenido en `dist-single`, útil para compartir la demo |
-| `npm run preview` | Sirve localmente la versión generada con `build` |
+| `pnpm build` | Genera la app lista para publicar en la carpeta `dist` |
+| `pnpm build:single` | Genera un único `index.html` autocontenido en `dist-single`, útil para compartir la demo |
+| `pnpm preview` | Sirve localmente la versión generada con `build` |
 
 ## Estructura del código
 
