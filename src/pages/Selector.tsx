@@ -1,0 +1,83 @@
+import { Link } from 'react-router-dom'
+import { AREAS } from '../data/areas'
+import { COMUNA, TEMPORADA } from '../data/demo'
+import { Icon } from '../components/Icon'
+import { Logo } from '../components/ui'
+import { useStore } from '../state/store'
+
+const PERFILES = [
+  {
+    to: '/vecino', tipo: 'App móvil', titulo: 'Vecino', icono: 'perfil', fondo: '#FBEADF', color: '#8F3A14',
+    texto: 'Entra como Marta, socia de Villa Los Aromos. Vota, apoya necesidades, mira la tabla general y aprende educación cívica.',
+  },
+  {
+    to: '/directiva', tipo: 'App móvil', titulo: 'Directiva', icono: 'panel', fondo: '#E8F1EC', color: '#1D6B4E',
+    texto: 'Entra como la presidenta de Villa Los Aromos. Registra actividades, ve el radar de tu junta y ordena tus documentos.',
+  },
+  {
+    to: '/admin', tipo: 'Panel web', titulo: 'Administración', icono: 'escudo', fondo: '#E5E6F0', color: '#2E3259',
+    texto: 'Valida actividades, incorpora juntas, modera contenido y realiza la premiación de la temporada.',
+  },
+  {
+    to: '/municipio', tipo: 'Panel web', titulo: 'Municipio', icono: 'mapa', fondo: '#E4ECFA', color: '#1D4688',
+    texto: 'Mira la vitalidad de cada sector, las brechas por área y responde las necesidades de los vecinos.',
+  },
+]
+
+export default function Selector() {
+  const { dispatch, toast } = useStore()
+  return (
+    <div className="selector">
+      <div className="selector-hero">
+        <div className="selector-inner">
+          <div className="marca" style={{ fontSize: 16, marginBottom: 22 }}>
+            <Logo size={34} mono /> Prototipo · {COMUNA}
+          </div>
+          <h1>Barrio Vivo</h1>
+          <div className="lema">Tu junta, tu barrio, tu voz.</div>
+          <p className="intro">
+            Plataforma comunitaria para juntas de vecinos. Cada actividad suma puntos en una de las 7 áreas de acción y compite por los
+            Premios Barrio Vivo de la {TEMPORADA.nombre.toLowerCase()}. Elige un perfil para recorrer la plataforma.
+          </p>
+          <div className="areas-strip">
+            {AREAS.map((a) => (
+              <span key={a.id}>
+                <i className="dot" style={{ background: a.color, width: 10, height: 10, borderRadius: 5 }} />
+                {a.corto}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="perfiles">
+        {PERFILES.map((p) => (
+          <Link key={p.to} to={p.to} className="perfil-card">
+            <span className="perfil-ico" style={{ background: p.fondo, color: p.color }}>
+              <Icon name={p.icono} size={26} />
+            </span>
+            <span className="tipo">{p.tipo}</span>
+            <h2>{p.titulo}</h2>
+            <p>{p.texto}</p>
+            <span className="ir">
+              Entrar <Icon name="derecha" size={18} />
+            </span>
+          </Link>
+        ))}
+      </div>
+
+      <div className="selector-pie">
+        <span>Datos de ejemplo. Lo que hagas en la demo queda guardado en este navegador.</span>
+        <button
+          className="btn btn-borde btn-chico"
+          onClick={() => {
+            dispatch({ t: 'reset' })
+            toast('La demo volvió a los datos iniciales')
+          }}
+        >
+          Reiniciar demo
+        </button>
+      </div>
+    </div>
+  )
+}

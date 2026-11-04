@@ -1,0 +1,11 @@
+{
+  "name": "Barrio Vivo",
+  "short_name": "Barrio Vivo",
+  "description": "Plataforma comunitaria para juntas de vecinos",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#FBFAF6",
+  "theme_color": "#1D6B4E",
+  "lang": "es-CL",
+  "icons": [{ "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}
