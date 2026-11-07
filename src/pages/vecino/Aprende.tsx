@@ -1,39 +1,20 @@
-import { useEffect, useState } from 'react'
-import { useLocation } from 'react-router-dom'
-import { EMERGENCIAS, LECCIONES, LEYES } from '../../data/demo'
+import { useState } from 'react'
+import { LECCIONES, LEYES } from '../../data/demo'
 import { Icon } from '../../components/Icon'
 import { Bar, Modal, PageTitle } from '../../components/ui'
 import { useStore } from '../../state/store'
 
 export default function Aprende() {
   const { s, dispatch, toast } = useStore()
-  const { hash } = useLocation()
   const [leccion, setLeccion] = useState<string | null>(null)
   const [ley, setLey] = useState<string | null>(LEYES[0].id)
   const hechas = s.leccionesHechas.length
   const actual = LECCIONES.find((l) => l.id === leccion)
 
-  useEffect(() => {
-    if (hash === '#emergencias') document.getElementById('emergencias')?.scrollIntoView()
-  }, [hash])
-
   return (
     <>
-      <PageTitle title="Aprende" sub="Para entender cómo funciona tu barrio" />
+      <PageTitle title="Aprende" sub="Para entender cómo funciona tu barrio" back="/vecino/perfil" />
       <div className="pad stack" style={{ paddingTop: 6 }}>
-        <section className="emergencias" id="emergencias" aria-labelledby="em-t">
-          <h2 id="em-t" style={{ fontSize: 18 }}>Números de emergencia</h2>
-          <div className="grid">
-            {EMERGENCIAS.map((e) => (
-              <a key={e.numero} href={`tel:${e.numero}`}>
-                <span className="num">{e.numero}</span>
-                <span>{e.nombre}</span>
-              </a>
-            ))}
-          </div>
-          <p className="small">Seguridad municipal: [NÚMERO DE TU COMUNA]</p>
-        </section>
-
         <div className="card stack-sm" style={{ background: 'var(--verde-claro)', border: 'none' }}>
           <div className="between">
             <span className="num" style={{ fontSize: 26, color: 'var(--verde)' }}>{hechas}/{LECCIONES.length}</span>

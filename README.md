@@ -13,10 +13,16 @@ Todavía no tiene base de datos ni inicio de sesión real.
 
 | Perfil | Tipo | Qué puede hacer |
 | --- | --- | --- |
-| Vecino | App móvil | Inicio de su junta, tabla general y premios, votaciones, necesidades con semáforo, conversación, mercado vecinal, educación cívica, emergencias, horas de voluntariado y certificado |
-| Directiva | App móvil | Panel con radar de 7 áreas e índice de vitalidad, registrar actividades con fotos y QR, avisos, documentos con vencimientos, socios y traspaso de directiva |
-| Administración | Panel web | Validar actividades, incorporar juntas, premiación de la temporada, moderación y reglas de puntaje |
-| Municipio | Panel web | Mapa de vitalidad por sector, brechas por área, cruce sector y área, alertas, responder necesidades e informe al concejo |
+| Vecino | App móvil | El Queltehue avisa, emergencias, Manos Vecinas (ayudas, voluntariado y sección jóvenes), consultas y necesidades con semáforo, tabla y premios, perfil con horas certificadas, insignias y comunidades |
+| Directiva | App móvil | Panel con radar, índice de vitalidad y jóvenes, registrar actividades con público objetivo, fotos y QR, aprobar propuestas juveniles, avisos oficiales, resumen semanal para WhatsApp, documentos, socios por tramo y traspaso de directiva |
+| Administración | Panel web | Validar actividades, incorporar juntas, premiación (7 áreas + Premio Juventud), moderación y reglas |
+| Municipio | Panel web | Vitalidad por sector, brechas por área, participación juvenil, Manos Vecinas, alertas, responder necesidades e informe al concejo |
+
+En el perfil Vecino puedes entrar como Marta (52 años, socia) o como Javiera (22 años, embajadora digital) para ver la experiencia adulta y la joven.
+
+## Cómo se ganan puntos
+
+Cada actividad suma; si es verificada, con otra junta o con jóvenes, suma más. Cada ayuda cumplida en Manos Vecinas suma en Social y Solidaridad.
 
 ## Las 7 áreas
 

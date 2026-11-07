@@ -2,21 +2,25 @@
 import type { AreaId } from './areas'
 import type {
   Actividad,
-  Aviso,
+  Alerta,
+  Ayuda,
+  Consulta,
+  Convocatoria,
   Documento,
-  Hilo,
+  Emprendedor,
   Junta,
   Leccion,
   Ley,
   Necesidad,
-  Producto,
+  Propuesta,
+  Publico,
   Reporte,
   Sector,
   Socio,
-  Votacion,
+  Vecino,
 } from './types'
 
-export const HOY = '2026-11-04'
+export const HOY = '2026-11-07'
 export const COMUNA = 'Comuna Demo'
 export const TEMPORADA = {
   nombre: 'Temporada Primavera 2026',
@@ -126,6 +130,34 @@ export const JUNTAS: Junta[] = [
   },
 ]
 
+// ---- Personas de ejemplo --------------------------------------------------------
+// Un perfil individual por persona; las membresías son sus perfiles comunitarios.
+
+export const VECINOS: Vecino[] = [
+  {
+    id: 'marta', nombre: 'Marta González', corto: 'Marta G.', edad: 52, tramo: '30-59', juntaId: 'aromos',
+    horasBase: 26, actividades: 9,
+    membresias: [{ organizacion: 'JJVV Villa Los Aromos', rol: 'Socia' }],
+  },
+  {
+    id: 'javiera', nombre: 'Javiera Toledo', corto: 'Javiera T.', edad: 22, tramo: '18-29', juntaId: 'aromos',
+    horasBase: 31, actividades: 12, embajador: true,
+    membresias: [
+      { organizacion: 'JJVV Villa Los Aromos', rol: 'Socia · Embajadora digital' },
+      { organizacion: 'Club Deportivo Los Aromos', rol: 'Voluntaria' },
+    ],
+  },
+]
+
+export const TRAMOS: Record<string, string> = {
+  '14-17': 'Joven 14–17',
+  '18-29': 'Joven 18–29',
+  '30-59': 'Adulto 30–59',
+  '60+': 'Adulto mayor',
+}
+
+export const esJoven = (tramo: string) => tramo === '14-17' || tramo === '18-29'
+
 // ---- Actividades ------------------------------------------------------------
 // Se generan de forma determinista a partir del perfil de cada junta,
 // para que el prototipo tenga una temporada creíble con brechas visibles.
@@ -154,6 +186,11 @@ const PERFIL: Record<string, number[]> = {
   quillem: [0, 0, 0, 0, 0, 0, 0],
 }
 
+// Proporción habitual de jóvenes (14 a 29) entre los asistentes de cada junta
+const JUVENTUD: Record<string, number> = {
+  aromos: 0.22, copihues: 0.34, mirador: 0.15, esperanza: 0.38, araucarias: 0.26, santarosa: 0.1, boldos: 0.07, bosque: 0.31, lagos: 0.2, quillem: 0.1,
+}
+
 const LUGARES = ['Sede vecinal', 'Plaza del barrio', 'Multicancha', 'Escuela del sector', 'Calle principal']
 const AREA_IDS: AreaId[] = ['cultura', 'deporte', 'social', 'mejora', 'salud', 'ambiente', 'seguridad']
 
@@ -163,6 +200,12 @@ function lcg(seed: number) {
     s = (s * 1664525 + 1013904223) % 4294967296
     return s / 4294967296
   }
+}
+
+/** Jóvenes esperados entre los registrados con QR, según el público de la actividad. */
+export function jovenesEsperados(qr: number, publico: Publico, base = 0.22) {
+  const f = publico === 'jovenes' ? 2.8 : publico === 'mayores' ? 0.15 : publico === 'ninos' ? 0.6 : 1
+  return Math.round(qr * Math.min(0.9, base * f))
 }
 
 function generarActividades(): Actividad[] {
@@ -176,23 +219,33 @@ function generarActividades(): Actividad[] {
       for (let k = 0; k < perfil[ai]; k++) {
         const nombres = NOMBRES[area]
         const nombre = nombres[(k + ai + n) % nombres.length]
-        // fechas entre julio y comienzos de noviembre
         const dia = Math.floor(rnd() * 120)
         const fecha = new Date(Date.UTC(2026, 6, 1) + dia * 86400000).toISOString().slice(0, 10)
         const asistentes = 12 + Math.floor(rnd() * Math.min(80, junta.socios * 0.6))
         const verificada = rnd() > 0.25
         const alianza = rnd() > 0.78
         const otra = ids[(ids.indexOf(junta.id) + 1 + Math.floor(rnd() * 6)) % 8]
+        const p = rnd()
+        const publico: Publico = /adultos mayores|Pausa activa|Once/.test(nombre)
+          ? 'mayores'
+          : /niños|infantil/.test(nombre)
+            ? 'ninos'
+            : p < 0.22
+              ? 'jovenes'
+              : 'todas'
+        const qr = verificada ? Math.floor(asistentes * 0.8) : 0
         out.push({
           id: `a${++n}`,
           juntaId: junta.id,
           nombre,
           area,
+          publico,
           fecha,
           lugar: LUGARES[Math.floor(rnd() * LUGARES.length)],
           asistentes,
           fotos: verificada ? 2 + Math.floor(rnd() * 6) : 0,
-          qr: verificada ? Math.floor(asistentes * 0.8) : 0,
+          qr,
+          jovenes: jovenesEsperados(qr, publico, JUVENTUD[junta.id]),
           alianzaCon: alianza && otra !== junta.id ? otra : undefined,
           estado: 'aprobada',
         })
@@ -201,9 +254,9 @@ function generarActividades(): Actividad[] {
   }
   // Algunas actividades recientes esperando validación
   out.push(
-    { id: 'p1', juntaId: 'mirador', nombre: 'Operativo de salud con el CESFAM', area: 'salud', fecha: '2026-11-01', lugar: 'Sede vecinal', asistentes: 38, fotos: 6, qr: 38, alianzaCon: 'aromos', estado: 'pendiente' },
-    { id: 'p2', juntaId: 'copihues', nombre: 'Limpieza del canal', area: 'ambiente', fecha: '2026-10-30', lugar: 'Canal Las Vertientes', asistentes: 22, fotos: 4, qr: 22, estado: 'pendiente' },
-    { id: 'p3', juntaId: 'esperanza', nombre: 'Bingo solidario', area: 'social', fecha: '2026-10-31', lugar: 'Sede vecinal', asistentes: 210, fotos: 0, qr: 210, estado: 'pendiente' },
+    { id: 'p1', juntaId: 'mirador', nombre: 'Operativo de salud con el CESFAM', area: 'salud', publico: 'todas', fecha: '2026-11-01', lugar: 'Sede vecinal', asistentes: 38, fotos: 6, qr: 38, jovenes: 6, alianzaCon: 'aromos', estado: 'pendiente' },
+    { id: 'p2', juntaId: 'copihues', nombre: 'Limpieza del canal', area: 'ambiente', publico: 'jovenes', fecha: '2026-10-30', lugar: 'Canal Las Vertientes', asistentes: 22, fotos: 4, qr: 22, jovenes: 15, estado: 'pendiente' },
+    { id: 'p3', juntaId: 'esperanza', nombre: 'Bingo solidario', area: 'social', publico: 'todas', fecha: '2026-10-31', lugar: 'Sede vecinal', asistentes: 210, fotos: 0, qr: 210, jovenes: 41, estado: 'pendiente' },
   )
   return out.sort((a, b) => b.fecha.localeCompare(a.fecha))
 }
@@ -213,25 +266,25 @@ export const ACTIVIDADES: Actividad[] = generarActividades()
 // ---- Necesidades -------------------------------------------------------------
 
 export const NECESIDADES: Necesidad[] = [
-  { id: 'n1', juntaId: 'aromos', titulo: 'Pasaje Los Robles sin luz, se siente inseguro', detalle: 'Tres postes sin ampolleta hace dos meses.', area: 'seguridad', apoyos: 58, estado: 'evaluacion', enviada: '2026-09-18', respuesta: 'Derivado a Alumbrado Público para catastro.', actualizada: '2026-10-02' },
-  { id: 'n2', juntaId: 'aromos', titulo: 'Microbasural en la esquina del canal', detalle: 'Se acumula basura y escombros cada fin de semana.', area: 'ambiente', apoyos: 34, estado: 'recibida', enviada: '2026-10-12' },
-  { id: 'n3', juntaId: 'aromos', titulo: 'Techo de la sede con goteras', detalle: 'En invierno no se puede usar el salón.', area: 'mejora', apoyos: 41, estado: 'respondida', enviada: '2026-08-05', respuesta: 'Puede postular al fondo vecinal 2027; Organizaciones Comunitarias apoya la postulación.', actualizada: '2026-09-10' },
-  { id: 'n4', juntaId: 'esperanza', titulo: 'Iluminación de pasajes del sector sur', detalle: 'Varios pasajes sin luz desde la tormenta.', area: 'seguridad', apoyos: 96, estado: 'enviada', enviada: '2026-09-02' },
-  { id: 'n5', juntaId: 'esperanza', titulo: 'Operativo de salud para adultos mayores', detalle: 'Muchos adultos mayores no llegan al CESFAM.', area: 'salud', apoyos: 52, estado: 'recibida', enviada: '2026-10-20' },
-  { id: 'n6', juntaId: 'copihues', titulo: 'Reparar juegos de la plaza', detalle: 'El columpio está roto y es peligroso.', area: 'mejora', apoyos: 47, estado: 'resuelta', enviada: '2026-07-14', respuesta: 'Juegos reparados por la cuadrilla municipal.', actualizada: '2026-08-21' },
-  { id: 'n7', juntaId: 'araucarias', titulo: 'Retiro de microbasural en el sitio eriazo', detalle: 'Hay escombros y riesgo de incendio.', area: 'ambiente', apoyos: 88, estado: 'evaluacion', enviada: '2026-08-28', respuesta: 'Programado con Aseo y Ornato.', actualizada: '2026-09-15' },
-  { id: 'n8', juntaId: 'boldos', titulo: 'Paradero de buses sin techo', detalle: 'Los niños esperan el bus escolar bajo la lluvia.', area: 'mejora', apoyos: 29, estado: 'enviada', enviada: '2026-08-11' },
-  { id: 'n9', juntaId: 'santarosa', titulo: 'Más rondas preventivas en la noche', detalle: 'Han aumentado los robos en la villa.', area: 'seguridad', apoyos: 71, estado: 'recibida', enviada: '2026-10-05' },
-  { id: 'n10', juntaId: 'bosque', titulo: 'Taller de salud mental para jóvenes', detalle: 'Los jóvenes no tienen espacios de apoyo.', area: 'salud', apoyos: 38, estado: 'enviada', enviada: '2026-10-25' },
-  { id: 'n11', juntaId: 'mirador', titulo: 'Contenedores de reciclaje', detalle: 'Queremos separar residuos pero no hay dónde.', area: 'ambiente', apoyos: 44, estado: 'respondida', enviada: '2026-09-01', respuesta: 'Se instalará un punto limpio en el primer semestre 2027.', actualizada: '2026-09-29' },
+  { id: 'n1', juntaId: 'aromos', titulo: 'Pasaje Los Robles sin luz, se siente inseguro', detalle: 'Tres postes sin ampolleta hace dos meses.', area: 'seguridad', apoyos: 58, estado: 'evaluacion', enviada: '2026-09-18', respuesta: 'Derivado a Alumbrado Público para catastro.', actualizada: '2026-10-02', comentarios: [{ autor: 'Jorge M.', texto: 'Anoche además robaron cables del poste de la esquina.', fecha: '2026-11-05' }] },
+  { id: 'n2', juntaId: 'aromos', titulo: 'Microbasural en la esquina del canal', detalle: 'Se acumula basura y escombros cada fin de semana.', area: 'ambiente', apoyos: 34, estado: 'recibida', enviada: '2026-10-12', comentarios: [] },
+  { id: 'n3', juntaId: 'aromos', titulo: 'Techo de la sede con goteras', detalle: 'En invierno no se puede usar el salón.', area: 'mejora', apoyos: 41, estado: 'respondida', enviada: '2026-08-05', respuesta: 'Puede postular al fondo vecinal 2027; Organizaciones Comunitarias apoya la postulación.', actualizada: '2026-09-10', comentarios: [] },
+  { id: 'n4', juntaId: 'esperanza', titulo: 'Iluminación de pasajes del sector sur', detalle: 'Varios pasajes sin luz desde la tormenta.', area: 'seguridad', apoyos: 96, estado: 'enviada', enviada: '2026-09-02', comentarios: [] },
+  { id: 'n5', juntaId: 'esperanza', titulo: 'Operativo de salud para adultos mayores', detalle: 'Muchos adultos mayores no llegan al CESFAM.', area: 'salud', apoyos: 52, estado: 'recibida', enviada: '2026-10-20', comentarios: [] },
+  { id: 'n6', juntaId: 'copihues', titulo: 'Reparar juegos de la plaza', detalle: 'El columpio está roto y es peligroso.', area: 'mejora', apoyos: 47, estado: 'resuelta', enviada: '2026-07-14', respuesta: 'Juegos reparados por la cuadrilla municipal.', actualizada: '2026-08-21', comentarios: [] },
+  { id: 'n7', juntaId: 'araucarias', titulo: 'Retiro de microbasural en el sitio eriazo', detalle: 'Hay escombros y riesgo de incendio.', area: 'ambiente', apoyos: 88, estado: 'evaluacion', enviada: '2026-08-28', respuesta: 'Programado con Aseo y Ornato.', actualizada: '2026-09-15', comentarios: [] },
+  { id: 'n8', juntaId: 'boldos', titulo: 'Paradero de buses sin techo', detalle: 'Los niños esperan el bus escolar bajo la lluvia.', area: 'mejora', apoyos: 29, estado: 'enviada', enviada: '2026-08-11', comentarios: [] },
+  { id: 'n9', juntaId: 'santarosa', titulo: 'Más rondas preventivas en la noche', detalle: 'Han aumentado los robos en la villa.', area: 'seguridad', apoyos: 71, estado: 'recibida', enviada: '2026-10-05', comentarios: [] },
+  { id: 'n10', juntaId: 'bosque', titulo: 'Taller de salud mental para jóvenes', detalle: 'Los jóvenes no tienen espacios de apoyo.', area: 'salud', apoyos: 38, estado: 'enviada', enviada: '2026-10-25', comentarios: [] },
+  { id: 'n11', juntaId: 'mirador', titulo: 'Contenedores de reciclaje', detalle: 'Queremos separar residuos pero no hay dónde.', area: 'ambiente', apoyos: 44, estado: 'respondida', enviada: '2026-09-01', respuesta: 'Se instalará un punto limpio en el primer semestre 2027.', actualizada: '2026-09-29', comentarios: [] },
 ]
 
-// ---- Votaciones --------------------------------------------------------------
+// ---- Consultas ----------------------------------------------------------------
 
-export const VOTACIONES: Votacion[] = [
-  { id: 'v1', juntaId: 'aromos', pregunta: '¿En qué usamos el fondo vecinal 2027?', cierre: '2026-11-07', quorum: 30, opciones: [{ texto: 'Luminarias en pasaje Los Robles', votos: 14 }, { texto: 'Reparar techo de la sede', votos: 19 }, { texto: 'Juegos para la plaza', votos: 8 }] },
-  { id: 'v2', juntaId: 'aromos', pregunta: '¿Qué día prefieren para la asamblea de diciembre?', cierre: '2026-11-20', quorum: 20, opciones: [{ texto: 'Sábado en la mañana', votos: 22 }, { texto: 'Domingo en la tarde', votos: 11 }, { texto: 'Jueves en la noche', votos: 6 }] },
-  { id: 'v3', juntaId: 'copihues', pregunta: '¿Celebramos la Navidad en la plaza o en la sede?', cierre: '2026-11-30', quorum: 25, opciones: [{ texto: 'En la plaza', votos: 18 }, { texto: 'En la sede', votos: 9 }] },
+export const CONSULTAS: Consulta[] = [
+  { id: 'v1', juntaId: 'aromos', pregunta: '¿En qué usamos el fondo vecinal 2027?', cierre: '2026-11-12', quorum: 30, votoDe: {}, opciones: [{ texto: 'Luminarias en pasaje Los Robles', votos: 14 }, { texto: 'Reparar techo de la sede', votos: 19 }, { texto: 'Juegos para la plaza', votos: 8 }] },
+  { id: 'v2', juntaId: 'aromos', pregunta: '¿Qué día prefieren para la asamblea de diciembre?', cierre: '2026-11-20', quorum: 20, votoDe: {}, opciones: [{ texto: 'Sábado en la mañana', votos: 22 }, { texto: 'Domingo en la tarde', votos: 11 }, { texto: 'Jueves en la noche', votos: 6 }] },
+  { id: 'v3', juntaId: 'copihues', pregunta: '¿Celebramos la Navidad en la plaza o en la sede?', cierre: '2026-11-30', quorum: 25, votoDe: {}, opciones: [{ texto: 'En la plaza', votos: 18 }, { texto: 'En la sede', votos: 9 }] },
 ]
 
 // ---- Documentos --------------------------------------------------------------
@@ -239,7 +292,7 @@ export const VOTACIONES: Votacion[] = [
 const DOC_BASE: Omit<Documento, 'id' | 'juntaId'>[] = [
   { tipo: 'Estatutos', detalle: 'PDF · versión vigente', estado: 'vigente', archivo: 'estatutos.pdf' },
   { tipo: 'Certificado de vigencia', detalle: 'Directiva y personalidad jurídica', estado: 'por_vencer', vence: '2026-11-24', archivo: 'certificado-vigencia.pdf' },
-  { tipo: 'Actas de asamblea', detalle: '12 actas · incluye votaciones de la app', estado: 'al_dia', archivo: 'actas-2026.pdf' },
+  { tipo: 'Actas de asamblea', detalle: '12 actas · incluye las consultas de la app', estado: 'al_dia', archivo: 'actas-2026.pdf' },
   { tipo: 'Libro de socios', detalle: 'Se actualiza solo con el padrón', estado: 'al_dia', archivo: 'libro-socios.pdf' },
   { tipo: 'RUT de la organización', detalle: 'Servicio de Impuestos Internos', estado: 'vigente', archivo: 'rut.pdf' },
   { tipo: 'Rendición fondo 2025', detalle: 'Falta subir', estado: 'pendiente' },
@@ -247,7 +300,6 @@ const DOC_BASE: Omit<Documento, 'id' | 'juntaId'>[] = [
 
 export const DOCUMENTOS: Documento[] = JUNTAS.flatMap((j, ji) =>
   DOC_BASE.map((d, di) => {
-    // variaciones por junta para que el municipio vea diferencias
     let estado = d.estado
     if (j.estado !== 'activa' && di > 1) estado = 'pendiente'
     if (ji % 3 === 1 && di === 1) estado = 'vigente'
@@ -256,31 +308,69 @@ export const DOCUMENTOS: Documento[] = JUNTAS.flatMap((j, ji) =>
   }),
 )
 
-// ---- Avisos, conversaciones, mercado -----------------------------------------
+// ---- El Queltehue avisa ----------------------------------------------------------
 
-export const AVISOS: Aviso[] = [
-  { id: 'av1', juntaId: 'aromos', titulo: 'Asamblea ordinaria de diciembre', texto: 'Vota en la app el día que más te acomode. La asamblea revisará el uso del fondo vecinal.', fecha: '2026-11-03' },
-  { id: 'av2', juntaId: 'aromos', titulo: 'Operativo de salud el sábado 14', texto: 'Junto a El Mirador traemos toma de presión y control de glicemia. Trae tu carnet.', fecha: '2026-11-01' },
-  { id: 'av3', juntaId: 'aromos', titulo: 'Corte de agua programado', texto: 'Jueves 6 de noviembre entre 9:00 y 14:00 horas en calles Los Robles y Los Maitenes.', fecha: '2026-10-29' },
-  { id: 'av4', juntaId: 'copihues', titulo: 'Inscripciones para Navidad', texto: 'Inscribe a tus niños hasta el 30 de noviembre con la secretaria.', fecha: '2026-11-02' },
+export const ALERTAS: Alerta[] = [
+  { id: 'al1', juntaId: 'aromos', tipo: 'oficial', titulo: 'Asamblea ordinaria de diciembre', texto: 'Responde la consulta para elegir el día. La asamblea revisará el uso del fondo vecinal.', fecha: '2026-11-06', autor: 'Directiva', comentarios: [] },
+  { id: 'al2', juntaId: 'aromos', tipo: 'corte', titulo: 'Corte de agua el jueves 12', texto: 'Entre 9:00 y 14:00 horas en calles Los Robles y Los Maitenes. Guarda agua la noche anterior.', fecha: '2026-11-06', autor: 'Empresa sanitaria · aviso programado', comentarios: [] },
+  { id: 'al3', juntaId: 'aromos', tipo: 'mascota', titulo: 'Se perdió Canela', texto: 'Perrita café, mediana, con collar rojo. Se escapó el martes cerca de la plaza.', fecha: '2026-11-05', autor: 'Carmen R.', comentarios: [{ autor: 'Luis A.', texto: 'La vi esta mañana cerca de la multicancha.', fecha: '2026-11-06' }] },
+  { id: 'al4', juntaId: 'aromos', tipo: 'operativo', titulo: 'Vacunación contra la influenza en la sede', texto: 'Martes 10, de 10:00 a 13:00 horas. Adultos mayores, embarazadas y enfermos crónicos. Trae tu carnet.', fecha: '2026-11-04', autor: 'CESFAM del sector', comentarios: [] },
+  { id: 'al5', juntaId: 'aromos', tipo: 'seguridad', titulo: 'Robo de cables en pasaje Los Robles', texto: 'Anoche robaron el cableado de dos postes. Ya se avisó a la compañía eléctrica y se hizo la denuncia.', fecha: '2026-11-05', autor: 'Jorge M.', comentarios: [] },
+  { id: 'al6', juntaId: 'aromos', tipo: 'transito', titulo: 'Calle Los Maitenes cortada', texto: 'Trabajos de pavimentación hasta el viernes 13. Desvío por Los Robles.', fecha: '2026-11-03', autor: 'Directiva', comentarios: [] },
+  { id: 'al7', juntaId: 'copihues', tipo: 'oficial', titulo: 'Inscripciones para Navidad', texto: 'Inscribe a tus niños hasta el 30 de noviembre con la secretaria.', fecha: '2026-11-02', autor: 'Directiva', comentarios: [] },
 ]
 
-export const HILOS: Hilo[] = [
-  { id: 'h1', juntaId: 'aromos', titulo: '¿Alguien sabe cuándo pasa el camión de reciclaje?', autor: 'Carmen R.', comentarios: [
-    { autor: 'Jorge M.', texto: 'Pasa los martes cada 15 días. El próximo es el 11.', fecha: '2026-11-02' },
-    { autor: 'Carmen R.', texto: '¡Gracias vecino!', fecha: '2026-11-02' },
-  ] },
-  { id: 'h2', juntaId: 'aromos', titulo: 'Ideas para la fiesta de fin de año', autor: 'Rosa C.', comentarios: [
-    { autor: 'Luis A.', texto: 'Una once comunitaria en la plaza con música en vivo.', fecha: '2026-10-28' },
-  ] },
+// ---- Manos Vecinas -----------------------------------------------------------------
+
+export const AYUDAS: Ayuda[] = [
+  { id: 'm1', juntaId: 'aromos', tipo: 'pide', categoria: 'acompanar', titulo: 'Acompañamiento al CESFAM el jueves 12', detalle: 'Tengo hora a las 10:30 y me cuesta ir solo en micro.', autor: 'Don Segundo H.', autorTramo: '60+', fecha: '2026-11-06', horas: 2, estado: 'abierta' },
+  { id: 'm2', juntaId: 'aromos', tipo: 'pide', categoria: 'cargar', titulo: 'Ayuda para bajar cajas de la bodega', detalle: 'Son unas 6 cajas pesadas. Media hora de trabajo.', autor: 'Teresa M.', autorTramo: '60+', fecha: '2026-11-05', horas: 1, estado: 'abierta' },
+  { id: 'm3', juntaId: 'aromos', tipo: 'ofrece', categoria: 'prestar', titulo: 'Presto escalera y taladro', detalle: 'Escalera de 3 metros y taladro percutor. Retiro en pasaje Los Maitenes.', autor: 'Jorge M.', autorTramo: '30-59', fecha: '2026-11-03', horas: 1, estado: 'abierta' },
+  { id: 'm4', juntaId: 'aromos', tipo: 'ofrece', categoria: 'ensenar', titulo: 'Ayudo con tareas de matemáticas', detalle: 'Para niños de 1° a 8° básico, en la sede, martes y jueves en la tarde.', autor: 'Javiera T.', autorId: 'javiera', autorTramo: '18-29', fecha: '2026-11-02', horas: 2, estado: 'abierta' },
+  { id: 'm5', juntaId: 'aromos', tipo: 'pide', categoria: 'cuidar', titulo: 'Regar plantas mientras viajo', detalle: 'Del 20 al 27 de noviembre. Son 10 macetas en el patio.', autor: 'Patricia S.', autorTramo: '30-59', fecha: '2026-11-04', horas: 2, estado: 'abierta' },
+  { id: 'm6', juntaId: 'aromos', tipo: 'pide', categoria: 'ensenar', titulo: 'Aprender a hacer videollamadas', detalle: 'Quiero hablar con mis nietos que viven en Santiago.', autor: 'Rosa C.', autorTramo: '60+', fecha: '2026-11-01', horas: 1, estado: 'en_curso', con: 'Javiera T.', conId: 'javiera' },
+  { id: 'm7', juntaId: 'aromos', tipo: 'pide', categoria: 'reparar', titulo: 'Arreglar la reja del antejardín', detalle: 'Se soltó una bisagra.', autor: 'Don Segundo H.', autorTramo: '60+', fecha: '2026-10-20', horas: 2, estado: 'cumplida', con: 'Luis A.', gracias: 'Quedó firme. ¡Gracias, Luis!' },
+  { id: 'm8', juntaId: 'aromos', tipo: 'pide', categoria: 'acompanar', titulo: 'Acompañarme a la feria', detalle: 'Los sábados en la mañana.', autor: 'Teresa M.', autorTramo: '60+', fecha: '2026-10-18', horas: 2, estado: 'cumplida', con: 'Javiera T.', conId: 'javiera', gracias: 'Mil gracias, Javiera, por la paciencia y la conversa.' },
+  { id: 'm9', juntaId: 'aromos', tipo: 'ofrece', categoria: 'prestar', titulo: 'Presto mesa y sillas para cumpleaños', detalle: '1 mesa larga y 10 sillas.', autor: 'Marta G.', autorId: 'marta', autorTramo: '30-59', fecha: '2026-10-10', horas: 1, estado: 'cumplida', con: 'Carmen R.', gracias: 'Salvaste el cumpleaños de la Sofi. ¡Gracias, Marta!' },
+  // Otras juntas (para los datos agregados del municipio)
+  ...(
+    [
+      ['copihues', 'acompanar', 4], ['copihues', 'ensenar', 3], ['copihues', 'cargar', 2],
+      ['esperanza', 'acompanar', 6], ['esperanza', 'cuidar', 3], ['esperanza', 'reparar', 2],
+      ['mirador', 'prestar', 3], ['mirador', 'acompanar', 1],
+      ['araucarias', 'ensenar', 2], ['araucarias', 'reparar', 3],
+      ['bosque', 'acompanar', 3], ['bosque', 'ensenar', 4],
+      ['santarosa', 'cargar', 1], ['boldos', 'acompanar', 2],
+    ] as [string, Ayuda['categoria'], number][]
+  ).flatMap(([juntaId, categoria, n], i) =>
+    Array.from({ length: n }, (_, k): Ayuda => ({
+      id: `mx${i}-${k}`, juntaId, tipo: 'pide', categoria, titulo: 'Ayuda entre vecinos', detalle: '', autor: 'Vecino', autorTramo: k % 2 ? '60+' : '30-59',
+      fecha: '2026-10-15', horas: 2, estado: 'cumplida', con: 'Vecino', gracias: '¡Gracias!',
+    })),
+  ),
 ]
 
-export const PRODUCTOS: Producto[] = [
-  { id: 'pr1', juntaId: 'aromos', nombre: 'Pan amasado y sopaipillas', vendedor: 'Carmen R.', precio: '$2.500 la docena', categoria: 'Comida', descripcion: 'Pedidos de lunes a sábado. Retiro en pasaje Los Maitenes.', estado: 'publicado' },
-  { id: 'pr2', juntaId: 'aromos', nombre: 'Arreglo de ropa y costura', vendedor: 'Marta G.', precio: 'Desde $3.000', categoria: 'Servicios', descripcion: 'Bastas, cierres y ajustes. Entrega en 48 horas.', estado: 'publicado' },
-  { id: 'pr3', juntaId: 'aromos', nombre: 'Huevos de campo', vendedor: 'Don Segundo', precio: '$4.000 la bandeja', categoria: 'Comida', descripcion: 'Bandeja de 30 huevos, gallinas libres.', estado: 'publicado' },
-  { id: 'pr4', juntaId: 'aromos', nombre: 'Clases de reforzamiento escolar', vendedor: 'Javiera T.', precio: '$6.000 la hora', categoria: 'Servicios', descripcion: 'Matemáticas y lenguaje, de 1° a 8° básico.', estado: 'publicado' },
-  { id: 'pr5', juntaId: 'aromos', nombre: 'Tejidos a palillo', vendedor: 'Rosa C.', precio: 'Desde $8.000', categoria: 'Artesanía', descripcion: 'Gorros, bufandas y chalecos a pedido.', estado: 'revision' },
+export const CONVOCATORIAS: Convocatoria[] = [
+  { id: 'c1', juntaId: 'aromos', titulo: 'Recepción de vecinos en el operativo de salud', detalle: 'Recibir a los vecinos, ordenar la fila y registrar asistencia con QR.', fecha: '2026-11-14', area: 'salud', cupos: 4, inscritos: 2, horas: 3, inscritosIds: [], asistieronIds: [] },
+  { id: 'c2', juntaId: 'aromos', titulo: 'Limpieza del canal junto a El Mirador', detalle: 'Llevamos guantes y bolsas. Trae agua y gorro.', fecha: '2026-11-21', area: 'ambiente', cupos: 10, inscritos: 4, horas: 3, paraJovenes: true, inscritosIds: [], asistieronIds: [] },
+  { id: 'c3', juntaId: 'aromos', titulo: 'Monitores para la corrida familiar', detalle: 'Guiar a los corredores en los cruces y repartir agua.', fecha: '2026-11-29', area: 'deporte', cupos: 8, inscritos: 5, horas: 4, paraJovenes: true, inscritosIds: [], asistieronIds: [] },
+  { id: 'c4', juntaId: 'aromos', titulo: 'Armar las cajas de la colecta navideña', detalle: 'Clasificar alimentos y juguetes en la sede.', fecha: '2026-12-12', area: 'social', cupos: 6, inscritos: 3, horas: 3, inscritosIds: [], asistieronIds: [] },
+]
+
+export const PROPUESTAS: Propuesta[] = [
+  { id: 'pj1', juntaId: 'aromos', titulo: 'Tocata en la plaza con bandas del barrio', detalle: 'Tres bandas locales, un sábado en la tarde. Necesitamos el permiso de la plaza y amplificación.', area: 'cultura', autor: 'Javiera T.', fecha: '2026-11-03', estado: 'pendiente' },
+  { id: 'pj2', juntaId: 'aromos', titulo: 'Taller de skate para niños', detalle: 'Los domingos en la multicancha, con cascos prestados.', area: 'deporte', autor: 'Benjamín O.', fecha: '2026-11-01', estado: 'pendiente' },
+  { id: 'pj3', juntaId: 'aromos', titulo: 'Mural sobre la historia de la villa', detalle: 'Con fotos antiguas que nos presten los vecinos fundadores.', area: 'cultura', autor: 'Francisca L.', fecha: '2026-10-12', estado: 'aprobada' },
+]
+
+// ---- Emprendedores del barrio --------------------------------------------------
+
+export const EMPRENDEDORES: Emprendedor[] = [
+  { id: 'e1', juntaId: 'aromos', nombre: 'Pan amasado y sopaipillas', vendedor: 'Carmen R.', rubro: 'Comida', precio: '$2.500 la docena', descripcion: 'Pedidos de lunes a sábado. Retiro en pasaje Los Maitenes.', contacto: '+56 9 5555 0101', estado: 'publicado' },
+  { id: 'e2', juntaId: 'aromos', nombre: 'Arreglo de ropa y costura', vendedor: 'Marta G.', rubro: 'Servicios', precio: 'Desde $3.000', descripcion: 'Bastas, cierres y ajustes. Entrega en 48 horas.', contacto: '+56 9 5555 0102', estado: 'publicado' },
+  { id: 'e3', juntaId: 'aromos', nombre: 'Huevos de campo', vendedor: 'Don Segundo H.', rubro: 'Comida', precio: '$4.000 la bandeja', descripcion: 'Bandeja de 30 huevos, gallinas libres.', contacto: '+56 9 5555 0103', estado: 'publicado' },
+  { id: 'e4', juntaId: 'aromos', nombre: 'Clases de reforzamiento escolar', vendedor: 'Javiera T.', rubro: 'Servicios', precio: '$6.000 la hora', descripcion: 'Matemáticas y lenguaje, de 1° a 8° básico.', contacto: '+56 9 5555 0104', estado: 'publicado' },
+  { id: 'e5', juntaId: 'aromos', nombre: 'Tejidos a palillo', vendedor: 'Rosa C.', rubro: 'Artesanía', precio: 'Desde $8.000', descripcion: 'Gorros, bufandas y chalecos a pedido.', contacto: '+56 9 5555 0105', estado: 'revision' },
 ]
 
 // ---- Aprende ------------------------------------------------------------------
@@ -327,26 +417,23 @@ export const EMERGENCIAS = [
 // ---- Moderación y padrón --------------------------------------------------------
 
 export const REPORTES: Reporte[] = [
-  { id: 'r1', tipo: 'comentario', detalle: 'Comentario con insultos en "Ideas para la fiesta"', junta: 'Villa Los Aromos' },
-  { id: 'r2', tipo: 'comentario', detalle: 'Publicidad de un negocio externo en Conversa', junta: 'Los Copihues' },
-  { id: 'r3', tipo: 'producto', detalle: 'Producto sin descripción: "Tejidos a palillo"', junta: 'Villa Los Aromos' },
+  { id: 'r1', tipo: 'comentario', detalle: 'Comentario con insultos en una necesidad', junta: 'Villa Los Aromos' },
+  { id: 'r2', tipo: 'aviso', detalle: 'Aviso duplicado en El Queltehue avisa', junta: 'Los Copihues' },
+  { id: 'r3', tipo: 'aviso', detalle: 'Aviso de seguridad con descripción física de una persona', junta: 'Santa Rosa', critico: true },
   { id: 'r4', tipo: 'foto', detalle: 'Foto con menores sin consentimiento de apoderados', junta: 'Población Esperanza', critico: true },
 ]
 
 export const SOCIOS: Socio[] = [
-  { nombre: 'Rosa Catrileo', desde: 1995, participaciones: 14 },
-  { nombre: 'Jorge Muñoz', desde: 2003, participaciones: 12 },
-  { nombre: 'Patricia Sandoval', desde: 2008, participaciones: 11 },
-  { nombre: 'Marta González', desde: 2011, participaciones: 9 },
-  { nombre: 'Carmen Riquelme', desde: 1999, participaciones: 8 },
-  { nombre: 'Luis Alarcón', desde: 2015, participaciones: 7 },
-  { nombre: 'Javiera Toledo', desde: 2021, participaciones: 6 },
-  { nombre: 'Segundo Huenchumilla', desde: 1987, participaciones: 5 },
-  { nombre: 'Francisca Lillo', desde: 2019, participaciones: 4 },
-  { nombre: 'Benjamín Ortiz', desde: 2024, participaciones: 3 },
-  { nombre: 'Teresa Mardones', desde: 2001, participaciones: 1 },
-  { nombre: 'Andrés Valdebenito', desde: 2023, participaciones: 0 },
+  { nombre: 'Rosa Catrileo', desde: 1995, participaciones: 14, tramo: '60+' },
+  { nombre: 'Jorge Muñoz', desde: 2003, participaciones: 12, tramo: '30-59' },
+  { nombre: 'Javiera Toledo', desde: 2021, participaciones: 12, tramo: '18-29' },
+  { nombre: 'Patricia Sandoval', desde: 2008, participaciones: 11, tramo: '30-59' },
+  { nombre: 'Marta González', desde: 2011, participaciones: 9, tramo: '30-59' },
+  { nombre: 'Carmen Riquelme', desde: 1999, participaciones: 8, tramo: '30-59' },
+  { nombre: 'Luis Alarcón', desde: 2015, participaciones: 7, tramo: '30-59' },
+  { nombre: 'Segundo Huenchumilla', desde: 1987, participaciones: 5, tramo: '60+' },
+  { nombre: 'Francisca Lillo', desde: 2019, participaciones: 4, tramo: '18-29' },
+  { nombre: 'Benjamín Ortiz', desde: 2024, participaciones: 3, tramo: '14-17' },
+  { nombre: 'Teresa Mardones', desde: 2001, participaciones: 1, tramo: '60+' },
+  { nombre: 'Andrés Valdebenito', desde: 2023, participaciones: 0, tramo: '18-29' },
 ]
-
-// Vecino de ejemplo con el que se entra al perfil Vecino
-export const VECINO_DEMO = { nombre: 'Marta González', juntaId: 'aromos', horas: 26, actividades: 9 }

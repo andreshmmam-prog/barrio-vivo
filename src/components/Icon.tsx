@@ -41,6 +41,14 @@ const PATHS: Record<string, string> = {
   compartir: 'M18 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M6 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M18 22a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M8.6 13.5l6.8 4 M15.4 6.5l-6.8 4',
   llave: 'M8 14a4 4 0 1 1 3.5-6H21v4h-2v3h-3v-3h-4.5A4 4 0 0 1 8 14z',
   filtro: 'M3 5h18l-7 8v6l-4 2v-8z',
+  manos: 'M7 12V6.5a1.5 1.5 0 0 1 3 0V11 M10 10.5V4.5a1.5 1.5 0 0 1 3 0V10.5 M13 10.5V5.5a1.5 1.5 0 0 1 3 0V11.5 M16 10a1.5 1.5 0 0 1 3 0v4a7 7 0 0 1-7 7h-.5a6.5 6.5 0 0 1-5.4-2.9L3.4 14a1.5 1.5 0 0 1 2.4-1.8L7 13.5',
+  gota: 'M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z',
+  pata: 'M8 9a1.6 1.6 0 1 0 0-3.2 1.6 1.6 0 0 0 0 3.2z M16 9a1.6 1.6 0 1 0 0-3.2 1.6 1.6 0 0 0 0 3.2z M5 13.5a1.6 1.6 0 1 0 0-3.2 1.6 1.6 0 0 0 0 3.2z M19 13.5a1.6 1.6 0 1 0 0-3.2 1.6 1.6 0 0 0 0 3.2z M12 20c-3 0-5-1.4-5-3.4S9.4 12 12 12s5 2.6 5 4.6S15 20 12 20z',
+  cono: 'M10 4h4l4.5 15h-13z M8.2 11h7.6 M4 20h16',
+  copiar: 'M9 9h11v11H9z M5 15H4V4h11v1',
+  chispa: 'M12 3v4 M12 17v4 M3 12h4 M17 12h4 M5.6 5.6l2.8 2.8 M15.6 15.6l2.8 2.8 M5.6 18.4l2.8-2.8 M15.6 8.4l2.8-2.8',
+  comentario: 'M4 5h16v11H9l-5 4z',
+  joven: 'M12 3l2.5 5 5.5.8-4 3.9.9 5.5L12 15.6 7.1 18.2l.9-5.5-4-3.9 5.5-.8z',
 }
 
 export function Icon({ name, size = 22, stroke = 2, className, title }: { name: string; size?: number; stroke?: number; className?: string; title?: string }) {

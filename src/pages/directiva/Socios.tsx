@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { SOCIOS } from '../../data/demo'
+import { SOCIOS, TRAMOS, esJoven } from '../../data/demo'
 import type { Cargo } from '../../data/types'
 import { Icon } from '../../components/Icon'
 import { Chip, Modal, PageTitle } from '../../components/ui'
@@ -15,6 +15,8 @@ export default function Socios() {
   const [nueva, setNueva] = useState<Cargo[]>(junta.directiva)
   const [hasta, setHasta] = useState('2029-03-31')
   const lista = SOCIOS.filter((x) => x.nombre.toLowerCase().includes(q.toLowerCase()))
+  const jovenes = SOCIOS.filter((x) => esJoven(x.tramo)).length
+  const mayores = SOCIOS.filter((x) => x.tramo === '60+').length
 
   return (
     <>
@@ -36,6 +38,17 @@ export default function Socios() {
           </button>
         </section>
 
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
+          <div className="card" style={{ padding: 10, background: 'var(--sol-suave)', border: 'none' }}>
+            <p className="xs muted">Jóvenes 14 a 29</p>
+            <p className="num" style={{ fontSize: 24 }}>{Math.round((jovenes / SOCIOS.length) * 100)}%</p>
+          </div>
+          <div className="card" style={{ padding: 10 }}>
+            <p className="xs muted">Adultos mayores</p>
+            <p className="num" style={{ fontSize: 24 }}>{Math.round((mayores / SOCIOS.length) * 100)}%</p>
+          </div>
+        </div>
+
         <label className="field">
           <span className="sr-only">Buscar socio</span>
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar socio por nombre" />
@@ -51,7 +64,7 @@ export default function Socios() {
                 <tr key={x.nombre}>
                   <td>
                     <div className="bold">{x.nombre}</div>
-                    <div className="xs muted">Socio desde {x.desde}</div>
+                    <div className="xs muted">Socio desde {x.desde} · {TRAMOS[x.tramo]}</div>
                   </td>
                   <td style={{ textAlign: 'right' }}>
                     {x.participaciones === 0 ? <Chip tone="rojo">Sin participar</Chip> : <span className="num">{x.participaciones}</span>}

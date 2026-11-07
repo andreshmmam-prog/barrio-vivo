@@ -1,32 +1,71 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AREAS } from '../../data/areas'
 import { HOY } from '../../data/demo'
 import { Icon } from '../../components/Icon'
+import { NuevaAlertaModal } from '../../components/comunidad'
 import { Bar, CambiarPerfil, Chip, Modal, Radar } from '../../components/ui'
 import { useIVC, useTabla } from '../../lib/hooks'
-import { areaMasDebil, fechaCorta, ordenar } from '../../lib/scoring'
+import { REGLAS, areaMasDebil, diasEntre, fechaCorta, ordenar, pct, rankingJuventud } from '../../lib/scoring'
 import { useStore } from '../../state/store'
 import { JUNTA_DIRECTIVA } from './config'
 
 export default function Panel() {
-  const { s, dispatch, toast } = useStore()
+  const { s, toast } = useStore()
   const tabla = useTabla()
   const ivcs = useIVC()
   const junta = s.juntas.find((j) => j.id === JUNTA_DIRECTIVA)!
   const fila = tabla.find((f) => f.junta.id === junta.id)!
   const ivc = ivcs.get(junta.id)!
   const debil = areaMasDebil(fila)
-  // Junta que más puntos tiene en el área débil: aliada sugerida
   const aliada = ordenar(tabla.filter((f) => f.junta.id !== junta.id), 'total', debil.id)[0]
   const pos = ordenar(tabla, 'porSocio').findIndex((f) => f.junta.id === junta.id) + 1
+  const posJuv = rankingJuventud(tabla).findIndex((f) => f.junta.id === junta.id) + 1
   const pendientes = s.actividades.filter((a) => a.juntaId === junta.id && a.estado === 'pendiente').length
+  const propuestas = s.propuestas.filter((p) => p.juntaId === junta.id && p.estado === 'pendiente').length
   const docsAlerta = s.documentos.filter((d) => d.juntaId === junta.id && (d.estado === 'por_vencer' || d.estado === 'pendiente')).length
   const presidencia = junta.directiva.find((c) => c.cargo === 'Presidencia')
 
   const [aviso, setAviso] = useState(false)
-  const [titulo, setTitulo] = useState('')
-  const [texto, setTexto] = useState('')
+  const [resumen, setResumen] = useState(false)
+
+  // Resumen semanal para el grupo de WhatsApp de la junta
+  const textoResumen = useMemo(() => {
+    const semana = (f: string) => diasEntre(f) <= 7
+    const avisos = s.alertas.filter((a) => a.juntaId === junta.id && semana(a.fecha)).slice(0, 3)
+    const consulta = s.consultas.find((c) => c.juntaId === junta.id && c.cierre >= HOY)
+    const ayudas = s.ayudas.filter((a) => a.juntaId === junta.id && a.tipo === 'pide' && a.estado === 'abierta')
+    const resuelta = s.necesidades.find((n) => n.juntaId === junta.id && n.respuesta)
+    const conv = s.convocatorias.filter((c) => c.juntaId === junta.id && c.inscritos < c.cupos).slice(0, 2)
+    const l: string[] = []
+    l.push(`*Barrio Vivo · JJVV ${junta.nombre}*`)
+    l.push(`Resumen de la semana al ${fechaCorta(HOY)}`)
+    l.push('')
+    l.push(`*Tabla general:* vamos ${pos}° de ${tabla.length} juntas.`)
+    if (consulta) l.push(`*Consulta abierta:* ${consulta.pregunta} Cierra el ${fechaCorta(consulta.cierre)}.`)
+    if (avisos.length) {
+      l.push('')
+      l.push('*El Queltehue avisa*')
+      avisos.forEach((a) => l.push(`- ${a.titulo}`))
+    }
+    if (ayudas.length) {
+      l.push('')
+      l.push(`*Manos Vecinas:* ${ayudas.length} vecinos necesitan una mano.`)
+      ayudas.slice(0, 2).forEach((a) => l.push(`- ${a.titulo}`))
+    }
+    if (conv.length) {
+      l.push('')
+      l.push('*Se buscan voluntarios*')
+      conv.forEach((c) => l.push(`- ${c.titulo} (${fechaCorta(c.fecha)}, ${c.cupos - c.inscritos} cupos)`))
+    }
+    if (resuelta) {
+      l.push('')
+      l.push(`*Respuesta del municipio:* ${resuelta.titulo}. ${resuelta.respuesta}`)
+    }
+    l.push('')
+    l.push('Entra a Barrio Vivo para participar.')
+    return l.join('\n')
+  }, [s, junta, pos, tabla.length])
 
   return (
     <>
@@ -62,44 +101,23 @@ export default function Panel() {
           </div>
         </div>
 
-        <section className="card" aria-labelledby="radar-t">
-          <div className="between">
-            <h2 id="radar-t" className="card-titulo" style={{ fontSize: 17 }}>Radar de la junta</h2>
-            <span className="xs muted">{fila.actividades} actividades</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <Radar values={radarDe(fila)} label={`Radar de ${junta.nombre}: ${debil.corto} es el área más baja`} size={330} />
-          </div>
-        </section>
-
-        <div className="card stack-sm" style={{ background: debil.suave, border: 'none' }}>
-          <p className="bold" style={{ color: debil.tinta }}>
-            {debil.corto}: {fila.porArea[debil.id] === 0 ? 'sin actividades esta temporada' : 'tu área más baja'}
-          </p>
-          <p className="small">
-            {aliada ? `JJVV ${aliada.junta.nombre} es la más fuerte en ${debil.corto.toLowerCase()}. ` : ''}
-            Una actividad en alianza suma +40 y, si es la primera en el área, +30 más. Te acerca al {debil.premio}.
-          </p>
+        <div className="row">
+          <button className="btn btn-sol" onClick={() => setResumen(true)}>
+            <Icon name="enviar" size={18} /> Resumen semanal
+          </button>
+          <button className="btn btn-borde" onClick={() => setAviso(true)}>
+            <Icon name="megafono" size={18} /> Publicar aviso
+          </button>
         </div>
 
-        <section className="card stack-sm" aria-labelledby="ivc-t">
-          <h2 id="ivc-t" className="card-titulo" style={{ fontSize: 17 }}>Índice de vitalidad</h2>
-          {[
-            ['Participación', ivc.participacion],
-            ['Diversidad de áreas', ivc.diversidad],
-            ['Constancia mensual', ivc.constancia],
-            ['Colaboración', ivc.colaboracion],
-            ['Gestión y documentos', ivc.gestion],
-          ].map(([l, v]) => (
-            <div key={l as string} className="resultado">
-              <div className="between small"><span>{l}</span><b>{v}</b></div>
-              <Bar value={v as number} height={8} />
-            </div>
-          ))}
-        </section>
-
-        {(pendientes > 0 || docsAlerta > 0) && (
+        {(pendientes > 0 || docsAlerta > 0 || propuestas > 0) && (
           <div className="stack-sm">
+            {propuestas > 0 && (
+              <Link to="/directiva/actividades" className="lista-item" style={{ textDecoration: 'none', color: 'inherit' }}>
+                <span className="doc-ico" style={{ background: 'var(--sol)', color: 'var(--tinta)' }}><Icon name="joven" size={20} /></span>
+                <span className="grow small"><b>{propuestas} propuestas juveniles</b> esperan tu respuesta.</span>
+              </Link>
+            )}
             {pendientes > 0 && (
               <Link to="/directiva/actividades" className="lista-item" style={{ textDecoration: 'none', color: 'inherit' }}>
                 <span className="doc-ico" style={{ background: 'var(--sol-suave)', color: 'var(--sol-tinta)' }}><Icon name="reloj" size={20} /></span>
@@ -115,40 +133,89 @@ export default function Panel() {
           </div>
         )}
 
+        <section className="card" aria-labelledby="radar-t">
+          <div className="between">
+            <h2 id="radar-t" className="card-titulo" style={{ fontSize: 17 }}>Radar de la junta</h2>
+            <span className="xs muted">{fila.actividades} actividades · {fila.ayudas} ayudas</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <Radar values={radarDe(fila)} label={`Radar de ${junta.nombre}: ${debil.corto} es el área más baja`} size={330} />
+          </div>
+        </section>
+
+        <div className="card stack-sm" style={{ background: debil.suave, border: 'none' }}>
+          <p className="bold" style={{ color: debil.tinta }}>
+            {debil.corto}: {fila.porArea[debil.id] === 0 ? 'sin actividades esta temporada' : 'tu área más baja'}
+          </p>
+          <p className="small">
+            {aliada ? `JJVV ${aliada.junta.nombre} es la más fuerte en ${debil.corto.toLowerCase()}. ` : ''}
+            Una actividad en alianza suma +{REGLAS.alianza}, y si un 30% de los asistentes son jóvenes, +{REGLAS.juvenil} más. Te acerca al {debil.premio}.
+          </p>
+        </div>
+
+        <section className="card stack-sm" aria-labelledby="joven-t" style={{ background: 'var(--tinta)', color: '#fff', border: 'none' }}>
+          <h2 id="joven-t" className="card-titulo" style={{ fontSize: 17 }}>Jóvenes en tu junta</h2>
+          <div className="between">
+            <div>
+              <p className="num" style={{ fontSize: 30, color: 'var(--sol)' }}>{fila.registrados ? pct(fila.jovenes / fila.registrados) : '0%'}</p>
+              <p className="xs" style={{ color: 'var(--gris-claro)' }}>de los asistentes tiene entre 14 y 29 años</p>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <p className="num" style={{ fontSize: 30 }}>{posJuv}°</p>
+              <p className="xs" style={{ color: 'var(--gris-claro)' }}>Premio Juventud</p>
+            </div>
+          </div>
+          <Bar value={fila.registrados ? (fila.jovenes / fila.registrados / 0.3) * 100 : 0} color="var(--sol)" track="var(--tinta-2)" height={8} />
+          <p className="xs" style={{ color: 'var(--gris-claro)' }}>La meta de renovación es que al menos un 30% de los asistentes sean jóvenes.</p>
+        </section>
+
+        <section className="card stack-sm" aria-labelledby="ivc-t">
+          <h2 id="ivc-t" className="card-titulo" style={{ fontSize: 17 }}>Índice de vitalidad</h2>
+          <p className="xs muted">Solo lo ven la directiva y el municipio.</p>
+          {[
+            ['Participación', ivc.participacion],
+            ['Diversidad de áreas', ivc.diversidad],
+            ['Constancia mensual', ivc.constancia],
+            ['Renovación generacional', ivc.renovacion],
+            ['Colaboración', ivc.colaboracion],
+            ['Gestión y documentos', ivc.gestion],
+          ].map(([l, v]) => (
+            <div key={l as string} className="resultado">
+              <div className="between small"><span>{l}</span><b>{v}</b></div>
+              <Bar value={v as number} height={8} />
+            </div>
+          ))}
+        </section>
+
         <Link to="/directiva/actividades/nueva" className="btn btn-block">
           <Icon name="mas" size={18} /> Registrar actividad
         </Link>
-        <button className="btn btn-borde btn-block" onClick={() => setAviso(true)}>
-          <Icon name="megafono" size={18} /> Publicar aviso a los vecinos
-        </button>
-        <p className="xs muted" style={{ textAlign: 'center' }}>
-          Las áreas: {AREAS.map((a) => a.corto).join(' · ')}
-        </p>
+        <p className="xs muted" style={{ textAlign: 'center' }}>Las áreas: {AREAS.map((a) => a.corto).join(' · ')}</p>
       </div>
 
-      <Modal open={aviso} onClose={() => setAviso(false)} title="Nuevo aviso">
-        <form
-          className="modal-body"
-          onSubmit={(e) => {
-            e.preventDefault()
-            if (!titulo.trim()) return
-            dispatch({ t: 'nuevoAviso', a: { id: `av${Date.now()}`, juntaId: junta.id, titulo: titulo.trim(), texto: texto.trim(), fecha: HOY } })
-            setTitulo('')
-            setTexto('')
-            setAviso(false)
-            toast('Aviso publicado para todos los socios')
-          }}
-        >
-          <label className="field">
-            Título
-            <input value={titulo} onChange={(e) => setTitulo(e.target.value)} required />
-          </label>
-          <label className="field">
-            Mensaje
-            <textarea value={texto} onChange={(e) => setTexto(e.target.value)} />
-          </label>
-          <button className="btn btn-block">Publicar aviso</button>
-        </form>
+      <NuevaAlertaModal open={aviso} onClose={() => setAviso(false)} juntaId={junta.id} autor="Directiva" oficial />
+
+      <Modal open={resumen} onClose={() => setResumen(false)} title="Resumen semanal">
+        <div className="modal-body">
+          <p className="small muted">Se arma solo con lo de la semana. Cópialo y pégalo en el grupo de WhatsApp de la junta.</p>
+          <div className="whatsapp-box" id="resumen-texto">{textoResumen}</div>
+          <button
+            className="btn btn-block"
+            onClick={() => {
+              navigator.clipboard
+                ?.writeText(textoResumen)
+                .then(() => toast('Resumen copiado. Pégalo en WhatsApp'))
+                .catch(() => {
+                  const el = document.getElementById('resumen-texto')
+                  if (el) window.getSelection()?.selectAllChildren(el)
+                  toast('Texto seleccionado: cópialo con Ctrl + C')
+                })
+            }}
+          >
+            <Icon name="copiar" size={18} /> Copiar resumen
+          </button>
+          <p className="xs muted">En la versión final se envía solo cada lunes a quienes lo activen.</p>
+        </div>
       </Modal>
     </>
   )

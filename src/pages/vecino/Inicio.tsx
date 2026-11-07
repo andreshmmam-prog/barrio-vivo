@@ -1,25 +1,31 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AREAS, AREA_BY_ID } from '../../data/areas'
-import { TEMPORADA, VECINO_DEMO } from '../../data/demo'
+import { EMERGENCIAS, TEMPORADA } from '../../data/demo'
 import { Icon } from '../../components/Icon'
-import { AreaChip, CambiarPerfil, Chip, Logo } from '../../components/ui'
-import { useTabla } from '../../lib/hooks'
+import { AlertaCard, NuevaAlertaModal } from '../../components/comunidad'
+import { AreaChip, Chip, Logo } from '../../components/ui'
+import { useTabla, useVecino } from '../../lib/hooks'
 import { areaMasDebil, esVerificada, fechaCorta, miles, ordenar, puntosPorActividad } from '../../lib/scoring'
 import { useStore } from '../../state/store'
 
 export default function Inicio() {
   const { s } = useStore()
   const tabla = useTabla()
-  const junta = s.juntas.find((j) => j.id === VECINO_DEMO.juntaId)!
+  const v = useVecino()
+  const junta = v.junta
   const fila = tabla.find((f) => f.junta.id === junta.id)!
   const pos = ordenar(tabla, 'porSocio').findIndex((f) => f.junta.id === junta.id) + 1
   const debil = areaMasDebil(fila)
   const fuertes = [...AREAS].sort((a, b) => fila.porArea[b.id] - fila.porArea[a.id]).slice(0, 2)
   const pts = puntosPorActividad(s.actividades)
   const recientes = s.actividades.filter((a) => (a.juntaId === junta.id || a.alianzaCon === junta.id) && a.estado === 'aprobada').slice(0, 3)
-  const votacion = s.votaciones.find((v) => v.juntaId === junta.id && v.miVoto === undefined)
-  const aviso = s.avisos.find((a) => a.juntaId === junta.id)
+  const consulta = s.consultas.find((c) => c.juntaId === junta.id && c.votoDe[v.id] === undefined)
+  const alertas = s.alertas.filter((a) => a.juntaId === junta.id).sort((a, b) => b.fecha.localeCompare(a.fecha))
+  const piden = s.ayudas.filter((a) => a.juntaId === junta.id && a.tipo === 'pide' && a.estado === 'abierta').length
   const nombre = (id?: string) => s.juntas.find((j) => j.id === id)?.nombre
+  const [avisar, setAvisar] = useState(false)
+  const [verTodas, setVerTodas] = useState(false)
 
   return (
     <>
@@ -33,7 +39,7 @@ export default function Inicio() {
           </Link>
         </div>
         <div>
-          <p className="saludo">Hola, {VECINO_DEMO.nombre.split(' ')[0]}</p>
+          <p className="saludo">Hola, {v.nombre.split(' ')[0]}</p>
           <h1>JJVV {junta.nombre}</h1>
         </div>
       </div>
@@ -55,73 +61,95 @@ export default function Inicio() {
           ))}
         </div>
         <p className="small muted">
-          Fuertes en {fuertes.map((f) => f.corto.toLowerCase()).join(' y ')}.{' '}
-          <b style={{ color: debil.tinta }}>{debil.corto} es el área a reforzar.</b>
+          Fuertes en {fuertes.map((f) => f.corto.toLowerCase()).join(' y ')}. <b style={{ color: debil.tinta }}>{debil.corto} es el área a reforzar.</b>
         </p>
       </Link>
 
       <div className="pad stack">
+        <nav className="emergencias-fila" aria-label="Números de emergencia">
+          {EMERGENCIAS.map((e) => (
+            <a key={e.numero} href={`tel:${e.numero}`}>
+              <span className="num">{e.numero}</span>
+              <span>{e.nombre}</span>
+            </a>
+          ))}
+        </nav>
+
         <div className="accesos">
+          <Link className="acceso" to="/vecino/manos">
+            <span><Icon name="manos" /></span>
+            <span>Pedir ayuda</span>
+          </Link>
           <Link className="acceso" to="/vecino/participa">
             <span><Icon name="voto" /></span>
-            <span>Votar</span>
+            <span>Consultas</span>
           </Link>
-          <Link className="acceso" to="/vecino/avisos">
-            <span><Icon name="megafono" /></span>
-            <span>Avisos</span>
-          </Link>
-          <Link className="acceso" to="/vecino/mercado">
+          <Link className="acceso" to="/vecino/emprendedores">
             <span><Icon name="mercado" /></span>
-            <span>Mercado</span>
+            <span>Emprendedores</span>
           </Link>
-          <Link className="acceso" to="/vecino/aprende#emergencias">
-            <span style={{ background: 'var(--rojo-suave)', color: 'var(--rojo)' }}><Icon name="telefono" /></span>
-            <span>Emergencia</span>
-          </Link>
+          <button className="acceso" onClick={() => setAvisar(true)}>
+            <span style={{ background: 'var(--sol-suave)', color: 'var(--sol-tinta)' }}><Icon name="megafono" /></span>
+            <span>Avisar</span>
+          </button>
         </div>
 
-        {votacion && (
+        {consulta && (
           <Link to="/vecino/participa" className="lista-item" style={{ textDecoration: 'none', color: 'inherit' }}>
             <span className="area-icon" style={{ width: 44, height: 44, background: 'var(--verde)' }}>
               <Icon name="voto" size={22} />
             </span>
             <div className="grow">
-              <p className="titulo">Votación abierta: {votacion.pregunta}</p>
-              <p className="small muted">
-                Cierra el {fechaCorta(votacion.cierre)} · {votacion.opciones.reduce((s, o) => s + o.votos, 0)} de {junta.socios} socios votaron
-              </p>
+              <p className="titulo">Consulta abierta: {consulta.pregunta}</p>
+              <p className="small muted">Cierra el {fechaCorta(consulta.cierre)}</p>
             </div>
             <Icon name="derecha" size={18} />
           </Link>
         )}
 
-        {aviso && (
-          <Link to="/vecino/avisos" className="lista-item" style={{ textDecoration: 'none', color: 'inherit' }}>
+        {piden > 0 && (
+          <Link to="/vecino/manos" className="lista-item" style={{ textDecoration: 'none', color: 'inherit', background: 'var(--sol-suave)', borderColor: 'var(--sol)' }}>
             <span className="area-icon" style={{ width: 44, height: 44, background: 'var(--sol)', color: 'var(--tinta)' }}>
-              <Icon name="megafono" size={22} />
+              <Icon name="manos" size={22} />
             </span>
             <div className="grow">
-              <p className="titulo">{aviso.titulo}</p>
-              <p className="small muted">Aviso de la directiva · {fechaCorta(aviso.fecha)}</p>
+              <p className="titulo">{piden} vecinos necesitan una mano</p>
+              <p className="small muted">Ayudar suma horas de voluntariado certificadas</p>
             </div>
             <Icon name="derecha" size={18} />
           </Link>
         )}
 
         <div className="seccion">
-          <h2>Lo que pasa en tu barrio</h2>
+          <h2>El Queltehue avisa</h2>
+          <button className="link-btn" onClick={() => setAvisar(true)}>
+            <Icon name="mas" size={16} /> Avisar
+          </button>
+        </div>
+        {(verTodas ? alertas : alertas.slice(0, 4)).map((a) => (
+          <AlertaCard key={a.id} a={a} autor={v.corto} />
+        ))}
+        {alertas.length > 4 && !verTodas && (
+          <button className="btn btn-borde btn-chico" onClick={() => setVerTodas(true)}>
+            Ver los {alertas.length} avisos
+          </button>
+        )}
+
+        <div className="seccion">
+          <h2>Lo que hizo tu barrio</h2>
         </div>
         {recientes.map((a) => {
           const area = AREA_BY_ID[a.area]
           const p = pts.get(a.id)
           return (
             <article key={a.id} className="actividad-card">
-              <div className="foto-ph" style={{ height: 110, background: area.suave, color: area.tinta }}>
-                <Icon name={area.icono} size={40} stroke={1.5} />
+              <div className="foto-ph" style={{ height: 96, background: area.suave, color: area.tinta }}>
+                <Icon name={area.icono} size={36} stroke={1.5} />
               </div>
               <div className="cuerpo">
                 <div className="chips">
                   <AreaChip area={a.area} />
+                  {a.publico === 'jovenes' && <Chip tone="sol">Para jóvenes</Chip>}
                   {esVerificada(a) && p && <Chip>Verificada · +{p.total}</Chip>}
                 </div>
                 <p className="bold" style={{ fontSize: 16 }}>{a.nombre}</p>
@@ -133,10 +161,9 @@ export default function Inicio() {
             </article>
           )
         })}
-        <div style={{ textAlign: 'center', paddingTop: 4 }}>
-          <CambiarPerfil />
-        </div>
       </div>
+
+      <NuevaAlertaModal open={avisar} onClose={() => setAvisar(false)} juntaId={junta.id} autor={v.corto} />
     </>
   )
 }

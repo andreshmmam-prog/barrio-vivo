@@ -1,11 +1,12 @@
 import { useMemo } from 'react'
+import { VECINOS } from '../data/demo'
 import { useStore } from '../state/store'
 import { ivc, tablaGeneral } from './scoring'
 
 /** Tabla general calculada a partir del estado actual. */
 export function useTabla() {
   const { s } = useStore()
-  return useMemo(() => tablaGeneral(s.juntas, s.actividades), [s.juntas, s.actividades])
+  return useMemo(() => tablaGeneral(s.juntas, s.actividades, s.ayudas), [s.juntas, s.actividades, s.ayudas])
 }
 
 /** IVC de cada junta activa. */
@@ -17,7 +18,11 @@ export function useIVC() {
   )
 }
 
-export function useJunta(id: string) {
+/** Persona con la que se navega el perfil Vecino, con sus horas al día. */
+export function useVecino() {
   const { s } = useStore()
-  return s.juntas.find((j) => j.id === id) ?? s.juntas[0]
+  const v = VECINOS.find((x) => x.id === s.vecinoId) ?? VECINOS[0]
+  const horas = v.horasBase + (s.horasExtra[v.id] ?? 0)
+  const junta = s.juntas.find((j) => j.id === v.juntaId)!
+  return { ...v, horas, junta }
 }

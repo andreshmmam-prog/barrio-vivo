@@ -1,15 +1,17 @@
 import { useState } from 'react'
 import { AREAS, AREA_BY_ID, type AreaId } from '../../data/areas'
-import { HOY, VECINO_DEMO } from '../../data/demo'
+import { HOY } from '../../data/demo'
 import { Icon } from '../../components/Icon'
+import { Comentarios } from '../../components/comunidad'
 import { Bar, Chip, Modal, PageTitle, PasosSemaforo, Semaforo, Tabs } from '../../components/ui'
+import { useVecino } from '../../lib/hooks'
 import { diasEntre, fechaCorta } from '../../lib/scoring'
 import { useStore } from '../../state/store'
 
-type Vista = 'votaciones' | 'necesidades' | 'conversa'
+type Vista = 'consultas' | 'necesidades'
 
 export default function Participa() {
-  const [vista, setVista] = useState<Vista>('votaciones')
+  const [vista, setVista] = useState<Vista>('consultas')
   return (
     <>
       <PageTitle title="Participa" sub="Tu voz en las decisiones del barrio" />
@@ -19,74 +21,69 @@ export default function Participa() {
           value={vista}
           onChange={setVista}
           options={[
-            { value: 'votaciones', label: 'Votaciones' },
+            { value: 'consultas', label: 'Consultas' },
             { value: 'necesidades', label: 'Necesidades' },
-            { value: 'conversa', label: 'Conversa' },
           ]}
         />
-        {vista === 'votaciones' && <Votaciones />}
-        {vista === 'necesidades' && <Necesidades />}
-        {vista === 'conversa' && <Conversa />}
+        {vista === 'consultas' ? <Consultas /> : <Necesidades />}
       </div>
     </>
   )
 }
 
-function Votaciones() {
+function Consultas() {
   const { s, dispatch, toast } = useStore()
-  const junta = s.juntas.find((j) => j.id === VECINO_DEMO.juntaId)!
-  const lista = s.votaciones.filter((v) => v.juntaId === junta.id)
+  const v = useVecino()
+  const junta = v.junta
+  const lista = s.consultas.filter((c) => c.juntaId === junta.id)
   const [eleccion, setEleccion] = useState<Record<string, number>>({})
 
   return (
     <>
-      {lista.map((v) => {
-        const total = v.opciones.reduce((s, o) => s + o.votos, 0)
-        const pct = Math.round((total / junta.socios) * 100)
-        const quorum = pct >= v.quorum
-        const abierta = v.cierre >= HOY
+      <p className="xs muted">Las consultas orientan a la directiva y quedan en el acta. Las decisiones que exige la ley se toman en asamblea.</p>
+      {lista.map((c) => {
+        const total = c.opciones.reduce((n, o) => n + o.votos, 0)
+        const pctV = Math.round((total / junta.socios) * 100)
+        const quorum = pctV >= c.quorum
+        const abierta = c.cierre >= HOY
+        const miVoto = c.votoDe[v.id]
         return (
-          <section key={v.id} className="card stack" style={{ border: v.miVoto === undefined && abierta ? '2px solid var(--verde)' : undefined }}>
+          <section key={c.id} className="card stack" style={miVoto === undefined && abierta ? { border: '2px solid var(--verde)' } : undefined}>
             <div className="between">
-              <Chip tone={abierta ? 'sol' : 'gris'}>{abierta ? `Abierta · cierra ${fechaCorta(v.cierre)}` : 'Cerrada'}</Chip>
-              <span className="xs muted">Quórum {v.quorum}%</span>
+              <Chip tone={abierta ? 'sol' : 'gris'}>{abierta ? `Abierta · cierra ${fechaCorta(c.cierre)}` : 'Cerrada'}</Chip>
+              <span className="xs muted">Quórum {c.quorum}%</span>
             </div>
-            <h3 style={{ fontSize: 19 }}>{v.pregunta}</h3>
-            {v.miVoto === undefined && abierta ? (
+            <h3 style={{ fontSize: 19 }}>{c.pregunta}</h3>
+            {miVoto === undefined && abierta ? (
               <form
                 className="stack-sm"
                 onSubmit={(e) => {
                   e.preventDefault()
-                  if (eleccion[v.id] === undefined) return
-                  dispatch({ t: 'votar', id: v.id, opcion: eleccion[v.id] })
-                  toast('Tu voto quedó registrado en el acta')
+                  if (eleccion[c.id] === undefined) return
+                  dispatch({ t: 'votar', id: c.id, opcion: eleccion[c.id], vecinoId: v.id })
+                  toast('Tu respuesta quedó registrada')
                 }}
               >
                 <fieldset style={{ border: 'none', padding: 0, margin: 0 }} className="stack-sm">
-                  <legend className="sr-only">{v.pregunta}</legend>
-                  {v.opciones.map((o, i) => (
+                  <legend className="sr-only">{c.pregunta}</legend>
+                  {c.opciones.map((o, i) => (
                     <label key={i} className="opcion">
-                      <input type="radio" name={v.id} checked={eleccion[v.id] === i} onChange={() => setEleccion({ ...eleccion, [v.id]: i })} />
+                      <input type="radio" name={c.id} checked={eleccion[c.id] === i} onChange={() => setEleccion({ ...eleccion, [c.id]: i })} />
                       {o.texto}
                     </label>
                   ))}
                 </fieldset>
-                <button className="btn btn-block" disabled={eleccion[v.id] === undefined}>
-                  Confirmar mi voto
-                </button>
-                <p className="xs muted" style={{ textAlign: 'center' }}>
-                  Un voto por socio. La consulta orienta a la directiva y queda en el acta de la asamblea.
-                </p>
+                <button className="btn btn-block" disabled={eleccion[c.id] === undefined}>Responder</button>
               </form>
             ) : (
               <div className="stack-sm">
-                {v.opciones.map((o, i) => {
+                {c.opciones.map((o, i) => {
                   const p = total ? Math.round((o.votos / total) * 100) : 0
                   return (
                     <div key={i} className="resultado">
                       <div className="between">
-                        <span style={{ fontWeight: v.miVoto === i ? 700 : 500 }}>
-                          {o.texto} {v.miVoto === i && <Chip>Tu voto</Chip>}
+                        <span style={{ fontWeight: miVoto === i ? 700 : 500 }}>
+                          {o.texto} {miVoto === i && <Chip>Tu respuesta</Chip>}
                         </span>
                         <b>{p}%</b>
                       </div>
@@ -97,7 +94,7 @@ function Votaciones() {
               </div>
             )}
             <p className="xs muted">
-              {total} de {junta.socios} socios votaron ({pct}%) · {quorum ? 'quórum alcanzado' : `faltan ${Math.ceil((v.quorum / 100) * junta.socios) - total} votos para el quórum`}
+              {total} de {junta.socios} socios respondieron ({pctV}%) · {quorum ? 'quórum alcanzado' : `faltan ${Math.ceil((c.quorum / 100) * junta.socios) - total} respuestas para el quórum`}
             </p>
           </section>
         )
@@ -108,18 +105,17 @@ function Votaciones() {
 
 function Necesidades() {
   const { s, dispatch, toast } = useStore()
+  const v = useVecino()
   const [abierta, setAbierta] = useState<string | null>(null)
   const [nueva, setNueva] = useState(false)
   const [titulo, setTitulo] = useState('')
   const [detalle, setDetalle] = useState('')
   const [area, setArea] = useState<AreaId>('mejora')
-  const lista = s.necesidades.filter((n) => n.juntaId === VECINO_DEMO.juntaId).sort((a, b) => b.apoyos - a.apoyos)
+  const lista = s.necesidades.filter((n) => n.juntaId === v.juntaId).sort((a, b) => b.apoyos - a.apoyos)
 
   return (
     <>
-      <p className="small muted">
-        Las necesidades con más apoyo se envían al municipio. Aquí ves en qué va cada una y cuántos días lleva esperando.
-      </p>
+      <p className="small muted">Las necesidades con más apoyo se envían al municipio. Aquí ves en qué va cada una y cuántos días lleva esperando.</p>
       {lista.map((n) => {
         const a = AREA_BY_ID[n.area]
         const dias = diasEntre(n.enviada)
@@ -128,21 +124,11 @@ function Necesidades() {
           <article key={n.id} className="card stack-sm">
             <div className="lista-item" style={{ border: 'none', padding: 0 }}>
               <span className="marca-area" style={{ background: a.color }} />
-              <button
-                className="grow"
-                onClick={() => setAbierta(open ? null : n.id)}
-                aria-expanded={open}
-                style={{ background: 'none', border: 'none', textAlign: 'left', padding: 0 }}
-              >
+              <button className="grow" onClick={() => setAbierta(open ? null : n.id)} aria-expanded={open} style={{ background: 'none', border: 'none', textAlign: 'left', padding: 0 }}>
                 <span className="titulo" style={{ display: 'block' }}>{n.titulo}</span>
                 <span className="small muted">{a.corto} · {n.estado === 'resuelta' ? 'resuelta' : `${dias} días esperando`}</span>
               </button>
-              <button
-                className="apoyo"
-                aria-pressed={!!n.apoyada}
-                aria-label={`Apoyar necesidad, ${n.apoyos} apoyos`}
-                onClick={() => dispatch({ t: 'apoyar', id: n.id })}
-              >
+              <button className="apoyo" aria-pressed={!!n.apoyada} aria-label={`Apoyar necesidad, ${n.apoyos} apoyos`} onClick={() => dispatch({ t: 'apoyar', id: n.id })}>
                 ▲ {n.apoyos}
                 <small>{n.apoyada ? 'Apoyas' : 'Apoyar'}</small>
               </button>
@@ -152,7 +138,7 @@ function Necesidades() {
               <span className="xs muted">Enviada el {fechaCorta(n.enviada)}</span>
             </div>
             <PasosSemaforo estado={n.estado} />
-            {open && (
+            {open ? (
               <div className="stack-sm" style={{ paddingTop: 4 }}>
                 <p className="small">{n.detalle}</p>
                 {n.respuesta ? (
@@ -163,7 +149,12 @@ function Necesidades() {
                 ) : (
                   <p className="xs muted">El municipio aún no responde.</p>
                 )}
+                <Comentarios id={n.id} lista={n.comentarios} onEnviar={(texto) => dispatch({ t: 'comentarNecesidad', id: n.id, autor: v.corto, texto })} />
               </div>
+            ) : (
+              <button className="link-btn" onClick={() => setAbierta(n.id)}>
+                <Icon name="comentario" size={16} /> {n.comentarios.length ? `${n.comentarios.length} ${n.comentarios.length === 1 ? 'comentario' : 'comentarios'} · ver detalle` : 'Ver detalle y comentar'}
+              </button>
             )}
           </article>
         )
@@ -180,7 +171,7 @@ function Necesidades() {
             if (!titulo.trim()) return
             dispatch({
               t: 'nuevaNecesidad',
-              n: { id: `nn${Date.now()}`, juntaId: VECINO_DEMO.juntaId, titulo: titulo.trim(), detalle: detalle.trim() || 'Sin detalle', area, apoyos: 1, apoyada: true, estado: 'enviada', enviada: HOY },
+              n: { id: `nn${Date.now()}`, juntaId: v.juntaId, titulo: titulo.trim(), detalle: detalle.trim() || 'Sin detalle', area, apoyos: 1, apoyada: true, estado: 'enviada', enviada: HOY, comentarios: [] },
             })
             setTitulo('')
             setDetalle('')
@@ -207,79 +198,6 @@ function Necesidades() {
           <button className="btn btn-block">Publicar necesidad</button>
         </form>
       </Modal>
-    </>
-  )
-}
-
-function Conversa() {
-  const { s, dispatch, toast } = useStore()
-  const hilos = s.hilos.filter((h) => h.juntaId === VECINO_DEMO.juntaId)
-  const [abierto, setAbierto] = useState<string | null>(hilos[0]?.id ?? null)
-  const [texto, setTexto] = useState('')
-  const [nuevo, setNuevo] = useState('')
-  const autor = VECINO_DEMO.nombre.split(' ')[0] + ' ' + VECINO_DEMO.nombre.split(' ')[1][0] + '.'
-
-  return (
-    <>
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault()
-          if (!nuevo.trim()) return
-          const id = `h${Date.now()}`
-          dispatch({ t: 'nuevoHilo', h: { id, juntaId: VECINO_DEMO.juntaId, titulo: nuevo.trim(), autor, comentarios: [] } })
-          setNuevo('')
-          setAbierto(id)
-          toast('Conversación publicada')
-        }}
-      >
-        <label className="sr-only" htmlFor="nuevo-hilo">Nueva conversación</label>
-        <input
-          id="nuevo-hilo"
-          value={nuevo}
-          onChange={(e) => setNuevo(e.target.value)}
-          placeholder="Pregunta o propone algo a tus vecinos"
-          style={{ minHeight: 48, border: '1.5px solid var(--linea-2)', borderRadius: 12, padding: '0 12px', flex: 1 }}
-        />
-        <button className="btn" style={{ flex: 'none' }} aria-label="Publicar conversación">
-          <Icon name="enviar" size={18} />
-        </button>
-      </form>
-      {hilos.map((h) => {
-        const open = abierto === h.id
-        return (
-          <article key={h.id} className="card stack-sm">
-            <button onClick={() => setAbierto(open ? null : h.id)} aria-expanded={open} style={{ background: 'none', border: 'none', textAlign: 'left', padding: 0 }}>
-              <span className="bold" style={{ display: 'block', fontSize: 15 }}>{h.titulo}</span>
-              <span className="xs muted">{h.autor} · {h.comentarios.length} respuestas</span>
-            </button>
-            {open && (
-              <div className="stack-sm">
-                {h.comentarios.map((c, i) => (
-                  <div key={i} style={{ background: 'var(--papel-3)', borderRadius: 12, padding: '8px 12px' }}>
-                    <p className="xs bold">{c.autor}</p>
-                    <p className="small">{c.texto}</p>
-                  </div>
-                ))}
-                <form
-                  className="row"
-                  onSubmit={(e) => {
-                    e.preventDefault()
-                    if (!texto.trim()) return
-                    dispatch({ t: 'comentar', hiloId: h.id, autor, texto: texto.trim() })
-                    setTexto('')
-                  }}
-                >
-                  <label className="sr-only" htmlFor={`r-${h.id}`}>Responder</label>
-                  <input id={`r-${h.id}`} value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Escribe una respuesta" style={{ minHeight: 44, border: '1.5px solid var(--linea-2)', borderRadius: 12, padding: '0 12px', flex: 1 }} />
-                  <button className="btn btn-chico" style={{ flex: 'none', minHeight: 44 }}>Responder</button>
-                </form>
-              </div>
-            )}
-          </article>
-        )
-      })}
-      <p className="xs muted" style={{ textAlign: 'center' }}>Espacio moderado. Trata a tus vecinos con respeto.</p>
     </>
   )
 }

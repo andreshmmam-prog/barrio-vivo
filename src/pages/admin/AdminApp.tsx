@@ -7,7 +7,7 @@ import { Icon } from '../../components/Icon'
 import { AreaChip, Chip, Empty } from '../../components/ui'
 import { WebHead, WebShell } from '../../components/WebShell'
 import { useTabla } from '../../lib/hooks'
-import { PESOS_IVC, REGLAS, fechaCorta, fechaLarga, miles, premios, puntosActividad } from '../../lib/scoring'
+import { PESOS_IVC, REGLAS, fechaCorta, fechaLarga, miles, pct, premios, puntosActividad, rankingJuventud } from '../../lib/scoring'
 import { useStore } from '../../state/store'
 
 const NAV = [
@@ -39,7 +39,7 @@ function Resumen() {
   const activas = s.juntas.filter((j) => j.estado === 'activa')
   const vecinos = activas.reduce((n, j) => n + j.sociosActivos, 0)
   const pendientes = s.actividades.filter((a) => a.estado === 'pendiente').length
-  const reportes = s.reportes.filter((r) => !r.resuelto).length + s.productos.filter((p) => p.estado === 'revision').length
+  const reportes = s.reportes.filter((r) => !r.resuelto).length + s.emprendedores.filter((p) => p.estado === 'revision').length
   const aprobadas = s.actividades.filter((a) => a.estado === 'aprobada').length
   return (
     <>
@@ -102,14 +102,14 @@ function Validar() {
               </thead>
               <tbody>
                 {pend.map((a) => {
-                  const p = puntosActividad(a, false).total
+                  const p = puntosActividad(a).total
                   const sinFotos = a.fotos === 0 || a.qr === 0
                   return (
                     <tr key={a.id} style={sinFotos ? { background: '#FFF8EC' } : undefined}>
                       <td><b>{a.nombre}</b><div className="xs muted">{fechaCorta(a.fecha)} · {a.lugar}{a.alianzaCon ? ` · con ${nombre(a.alianzaCon)}` : ''}</div></td>
                       <td>{nombre(a.juntaId)}</td>
                       <td><AreaChip area={a.area} /></td>
-                      <td>{a.fotos} fotos · {a.qr} QR{a.qr > 150 && <div className="xs" style={{ color: 'var(--sol-tinta)' }}>Asistencia inusual</div>}</td>
+                      <td>{a.fotos} fotos · {a.qr} QR · {a.jovenes} jóvenes{a.qr > 150 && <div className="xs" style={{ color: 'var(--sol-tinta)' }}>Asistencia inusual</div>}</td>
                       <td className="num">~{p}</td>
                       <td>
                         <div className="row" style={{ gap: 6 }}>
@@ -185,6 +185,7 @@ function Premiacion() {
   const { s, dispatch, toast } = useStore()
   const tabla = useTabla()
   const ps = premios(tabla)
+  const juv = rankingJuventud(tabla)[0]
   const cerrada = s.temporadaCerrada
   return (
     <>
@@ -222,6 +223,15 @@ function Premiacion() {
             {p.segundo && <p className="xs muted">2° lugar: {p.segundo.junta.nombre}</p>}
           </article>
         ))}
+        <article className="panel" style={{ borderTop: '6px solid var(--sol)', gap: 8, background: 'var(--tinta)', color: '#fff', border: 'none' }}>
+          <div className="between">
+            <span className="area-icon" style={{ width: 44, height: 44, background: 'var(--sol)', color: 'var(--tinta)' }}><Icon name="joven" size={22} /></span>
+            {cerrada && juv && <Chip tone="sol">Ganador</Chip>}
+          </div>
+          <h3 style={{ fontSize: 17, color: 'var(--sol)' }}>Premio Juventud Barrio Vivo</h3>
+          <p className="bold" style={{ fontSize: 18 }}>{juv?.junta.nombre ?? 'Desierto'}</p>
+          <p className="small" style={{ color: 'var(--gris-claro)' }}>{juv ? `${juv.jovenesPorSocio} jóvenes participando cada 10 socios · ${pct(juv.registrados ? juv.jovenes / juv.registrados : 0)} de sus asistentes` : ''}</p>
+        </article>
       </div>
     </>
   )
@@ -230,10 +240,10 @@ function Premiacion() {
 function Moderacion() {
   const { s, dispatch, toast } = useStore()
   const reportes = s.reportes.filter((r) => !r.resuelto)
-  const productos = s.productos.filter((p) => p.estado === 'revision')
+  const productos = s.emprendedores.filter((p) => p.estado === 'revision')
   return (
     <>
-      <WebHead title="Moderación" sub="Conversaciones, mercado y fotos. Las fotos con menores requieren consentimiento de sus apoderados." />
+      <WebHead title="Moderación" sub="Comentarios, avisos, emprendedores y fotos. Las fotos con menores requieren consentimiento de sus apoderados, y los avisos de seguridad no pueden describir personas." />
       <div className="grid-2">
         <section className="panel">
           <h2>Reportes</h2>
@@ -244,14 +254,14 @@ function Moderacion() {
                 <p className="titulo" style={{ fontSize: 14 }}>{r.detalle}</p>
                 <p className="xs muted">{r.junta} · {r.tipo}</p>
               </div>
-              <button className="btn btn-chico btn-borde" onClick={() => { dispatch({ t: 'moderar', id: r.id }); toast(r.critico ? 'Foto ocultada y directiva notificada' : 'Reporte resuelto') }}>
+              <button className="btn btn-chico btn-borde" onClick={() => { dispatch({ t: 'moderar', id: r.id }); toast(r.critico ? 'Contenido ocultado y autor notificado' : 'Reporte resuelto') }}>
                 {r.critico ? 'Ocultar' : 'Resolver'}
               </button>
             </div>
           ))}
         </section>
         <section className="panel">
-          <h2>Mercado por revisar</h2>
+          <h2>Emprendedores por revisar</h2>
           {productos.length === 0 && <Empty>Sin publicaciones por revisar.</Empty>}
           {productos.map((p) => (
             <div key={p.id} className="lista-item">
@@ -259,7 +269,7 @@ function Moderacion() {
                 <p className="titulo" style={{ fontSize: 14 }}>{p.nombre}</p>
                 <p className="xs muted">{p.vendedor} · {p.precio} · {p.descripcion}</p>
               </div>
-              <button className="btn btn-chico" onClick={() => { dispatch({ t: 'aprobarProducto', id: p.id }); toast('Publicado en el mercado vecinal') }}>Aprobar</button>
+              <button className="btn btn-chico" onClick={() => { dispatch({ t: 'aprobarEmprendedor', id: p.id }); toast('Publicado en el directorio de emprendedores') }}>Aprobar</button>
             </div>
           ))}
         </section>
@@ -269,7 +279,7 @@ function Moderacion() {
 }
 
 function Reglas() {
-  const [ejemplo] = useState(() => puntosActividad({ asistentes: 40, fotos: 4, qr: 34, alianzaCon: 'x' }, true))
+  const [ejemplo] = useState(() => puntosActividad({ asistentes: 40, fotos: 4, qr: 34, jovenes: 12, alianzaCon: 'x' }))
   return (
     <>
       <WebHead title="Reglas de puntaje" sub="Públicas, iguales para todas las juntas y verificables. Propuesta inicial a calibrar en el piloto." />
@@ -282,11 +292,12 @@ function Reglas() {
               <tr><td>Participación (1 punto cada 4 asistentes, tope)</td><td className="num">+{REGLAS.participacionMax}</td></tr>
               <tr><td>Verificada con fotos y QR</td><td className="num">×{String(REGLAS.multVerificada).replace('.', ',')}</td></tr>
               <tr><td>En alianza con otra junta</td><td className="num">+{REGLAS.alianza}</td></tr>
-              <tr><td>Primera vez en un área en la temporada</td><td className="num">+{REGLAS.primeraVez}</td></tr>
+              <tr><td>Bono juvenil: 30% o más de asistentes de 14 a 29 años</td><td className="num">+{REGLAS.juvenil}</td></tr>
+              <tr><td>Ayuda cumplida en Manos Vecinas (Social y Solidaridad)</td><td className="num">+{REGLAS.ayuda}</td></tr>
               <tr><td>Hito de Seguridad y Convivencia (sin asistentes)</td><td className="num">+15 part.</td></tr>
             </tbody>
           </table>
-          <p className="small muted">Ejemplo: 40 asistentes, verificada, en alianza y primera vez en el área = <b>{ejemplo.total} puntos</b>.</p>
+          <p className="small muted">En una frase: cada actividad suma; si es verificada, con otra junta o con jóvenes, suma más. Ejemplo: 40 asistentes, verificada, en alianza y con 35% de jóvenes = <b>{ejemplo.total} puntos</b>.</p>
         </section>
         <section className="panel">
           <h2>Índice de Vitalidad Comunitaria</h2>
@@ -295,6 +306,7 @@ function Reglas() {
               <tr><td>Participación: socios activos sobre inscritos</td><td className="num">{PESOS_IVC.participacion * 100}%</td></tr>
               <tr><td>Diversidad: áreas con actividad</td><td className="num">{PESOS_IVC.diversidad * 100}%</td></tr>
               <tr><td>Constancia: meses con actividad</td><td className="num">{PESOS_IVC.constancia * 100}%</td></tr>
+              <tr><td>Renovación generacional: asistentes jóvenes</td><td className="num">{PESOS_IVC.renovacion * 100}%</td></tr>
               <tr><td>Colaboración: alianzas</td><td className="num">{PESOS_IVC.colaboracion * 100}%</td></tr>
               <tr><td>Gestión: documentos y directiva vigente</td><td className="num">{PESOS_IVC.gestion * 100}%</td></tr>
             </tbody>
@@ -310,6 +322,27 @@ function Reglas() {
               </div>
             ))}
           </div>
+        </section>
+        <section className="panel">
+          <h2>Tramos de edad</h2>
+          <table className="tabla">
+            <tbody>
+              <tr><td>Menos de 14</td><td>Participa a través del perfil de su apoderado</td></tr>
+              <tr><td>14 a 17</td><td>Perfil propio con autorización del apoderado; sin emprendimientos; fotos con consentimiento</td></tr>
+              <tr><td>18 a 29</td><td>Perfil joven: convocatorias, propuestas juveniles y Premio Juventud</td></tr>
+              <tr><td>30 o más</td><td>Perfil adulto</td></tr>
+            </tbody>
+          </table>
+          <p className="xs muted">Se guarda solo el tramo, no la fecha de nacimiento. El municipio ve totales por tramo.</p>
+        </section>
+        <section className="panel">
+          <h2>El Queltehue avisa</h2>
+          <ul className="small" style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <li>Se informan hechos: qué pasó, dónde y cuándo.</li>
+            <li>Nunca fotos, nombres ni descripciones de personas en avisos de seguridad.</li>
+            <li>Ante una emergencia en curso, primero el 133.</li>
+            <li>Comentarios de una línea; los avisos que no cumplen se ocultan.</li>
+          </ul>
         </section>
         <section className="panel">
           <h2>Competencia sana</h2>

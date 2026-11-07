@@ -1,57 +1,60 @@
 // Reglas de puntaje, tabla general, premios e Índice de Vitalidad Comunitaria (IVC).
 // Son una propuesta inicial: los valores se calibran con los datos del piloto.
 import { AREAS, type AreaId } from '../data/areas'
-import type { Actividad, Documento, Junta } from '../data/types'
+import type { Actividad, Ayuda, Documento, Junta } from '../data/types'
 import { HOY, TEMPORADA } from '../data/demo'
 
+/**
+ * En una frase: cada actividad suma; si es verificada, con otra junta o con jóvenes, suma más.
+ * Cada ayuda cumplida en Manos Vecinas suma en Social y Solidaridad.
+ */
 export const REGLAS = {
   base: 50,
+  participacionMax: 25, // 1 punto cada 4 asistentes, con tope
   multVerificada: 1.5,
   alianza: 40,
-  primeraVez: 30,
-  participacionMax: 25, // 1 punto cada 4 asistentes, con tope
+  juvenil: 20,
+  umbralJuvenil: 0.3, // 30% de asistentes de 14 a 29 años
+  ayuda: 15,
   umbralRevision: 150,
 }
 
-export function esVerificada(a: Actividad) {
+export function esVerificada(a: Pick<Actividad, 'fotos' | 'qr'>) {
   return a.fotos > 0 && a.qr > 0
+}
+
+/** Proporción de jóvenes entre los asistentes registrados con QR. */
+export function shareJoven(a: Pick<Actividad, 'qr' | 'jovenes'>) {
+  return a.qr > 0 ? a.jovenes / a.qr : 0
 }
 
 export interface Desglose {
   base: number
-  verificada: boolean
   participacion: number
+  verificada: boolean
   alianza: number
-  primeraVez: number
+  juvenil: number
   total: number
 }
 
-/** Puntaje de una actividad. `primeraVez` indica si es la primera de la junta en esa área en la temporada. */
-export function puntosActividad(a: Pick<Actividad, 'asistentes' | 'fotos' | 'qr' | 'alianzaCon' | 'hito'>, primeraVez: boolean): Desglose {
-  const verificada = a.fotos > 0 && a.qr > 0
+export function puntosActividad(a: Pick<Actividad, 'asistentes' | 'fotos' | 'qr' | 'jovenes' | 'alianzaCon' | 'hito'>): Desglose {
+  const verificada = esVerificada(a)
   const participacion = a.hito ? 15 : Math.min(REGLAS.participacionMax, Math.floor(a.asistentes / 4))
   const base = Math.round((REGLAS.base + participacion) * (verificada ? REGLAS.multVerificada : 1))
   const alianza = a.alianzaCon ? REGLAS.alianza : 0
-  const pv = primeraVez ? REGLAS.primeraVez : 0
-  return { base: REGLAS.base, verificada, participacion, alianza, primeraVez: pv, total: base + alianza + pv }
+  const juvenil = !a.hito && shareJoven(a) >= REGLAS.umbralJuvenil ? REGLAS.juvenil : 0
+  return { base: REGLAS.base, participacion, verificada, alianza, juvenil, total: base + alianza + juvenil }
 }
 
-function enTemporada(a: Actividad) {
-  return a.fecha >= TEMPORADA.inicio && a.fecha <= TEMPORADA.fin
+function enTemporada(fecha: string) {
+  return fecha >= TEMPORADA.inicio && fecha <= TEMPORADA.fin
 }
 
-/** Puntos aprobados por actividad, considerando "primera vez" en orden cronológico. */
+/** Puntos de cada actividad aprobada de la temporada. */
 export function puntosPorActividad(actividades: Actividad[]): Map<string, Desglose> {
   const res = new Map<string, Desglose>()
-  const vistas = new Set<string>()
-  const orden = actividades
-    .filter((a) => a.estado === 'aprobada' && enTemporada(a))
-    .sort((x, y) => x.fecha.localeCompare(y.fecha) || x.id.localeCompare(y.id))
-  for (const a of orden) {
-    const key = `${a.juntaId}:${a.area}`
-    const primera = !vistas.has(key)
-    vistas.add(key)
-    res.set(a.id, puntosActividad(a, primera))
+  for (const a of actividades) {
+    if (a.estado === 'aprobada' && enTemporada(a.fecha)) res.set(a.id, puntosActividad(a))
   }
   return res
 }
@@ -62,16 +65,6 @@ export function vacioAreas(): PuntosArea {
   return { cultura: 0, deporte: 0, social: 0, mejora: 0, salud: 0, ambiente: 0, seguridad: 0 }
 }
 
-export interface FilaTabla {
-  junta: Junta
-  porArea: PuntosArea
-  total: number
-  porSocio: number // puntos cada 10 socios, para comparar juntas de distinto tamaño
-  porAreaSocio: PuntosArea
-  actividades: number
-  liga: Liga
-}
-
 export type Liga = 'Barrios pequeños' | 'Barrios medianos' | 'Barrios grandes'
 
 export function ligaDe(socios: number): Liga {
@@ -80,20 +73,40 @@ export function ligaDe(socios: number): Liga {
   return 'Barrios grandes'
 }
 
-export function tablaGeneral(juntas: Junta[], actividades: Actividad[]): FilaTabla[] {
+export interface FilaTabla {
+  junta: Junta
+  porArea: PuntosArea
+  total: number
+  porSocio: number // puntos cada 10 socios, para comparar juntas de distinto tamaño
+  porAreaSocio: PuntosArea
+  actividades: number
+  ayudas: number
+  jovenes: number // asistentes jóvenes registrados con QR
+  registrados: number // asistentes registrados con QR
+  jovenesPorSocio: number // jóvenes cada 10 socios
+  liga: Liga
+}
+
+export function tablaGeneral(juntas: Junta[], actividades: Actividad[], ayudas: Ayuda[]): FilaTabla[] {
   const pts = puntosPorActividad(actividades)
   return juntas
     .filter((j) => j.estado === 'activa')
     .map((junta) => {
       const porArea = vacioAreas()
       let n = 0
+      let jovenes = 0
+      let registrados = 0
       for (const a of actividades) {
         const p = pts.get(a.id)
         if (a.juntaId === junta.id && p) {
           porArea[a.area] += p.total
           n++
+          jovenes += a.jovenes
+          registrados += a.qr
         }
       }
+      const cumplidas = ayudas.filter((x) => x.juntaId === junta.id && x.estado === 'cumplida').length
+      porArea.social += cumplidas * REGLAS.ayuda
       const total = Object.values(porArea).reduce((s, v) => s + v, 0)
       const factor = 10 / junta.socios
       const porAreaSocio = vacioAreas()
@@ -105,6 +118,10 @@ export function tablaGeneral(juntas: Junta[], actividades: Actividad[]): FilaTab
         porSocio: Math.round(total * factor),
         porAreaSocio,
         actividades: n,
+        ayudas: cumplidas,
+        jovenes,
+        registrados,
+        jovenesPorSocio: Math.round(jovenes * factor),
         liga: ligaDe(junta.socios),
       }
     })
@@ -125,7 +142,7 @@ export interface Premio {
   segundo?: FilaTabla
 }
 
-/** Ganador de cada Premio Barrio Vivo por área (por puntos cada 10 socios). */
+/** Ganador de cada Premio Barrio Vivo por área. */
 export function premios(filas: FilaTabla[], modo: ModoRanking = 'porSocio'): Premio[] {
   return AREAS.map((area) => {
     const orden = ordenar(filas, modo, area.id)
@@ -135,21 +152,18 @@ export function premios(filas: FilaTabla[], modo: ModoRanking = 'porSocio'): Pre
   })
 }
 
-// ---- Radar ----------------------------------------------------------------------
-
-/** Valores 0..1 por área para el radar de una junta. */
-export function radar(fila: FilaTabla): number[] {
-  const max = Math.max(1, ...AREAS.map((a) => fila.porArea[a.id]))
-  return AREAS.map((a) => fila.porArea[a.id] / max)
+/** Premio Juventud: más jóvenes participando cada 10 socios. */
+export function rankingJuventud(filas: FilaTabla[]) {
+  return [...filas].sort((a, b) => b.jovenesPorSocio - a.jovenesPorSocio)
 }
 
 export function areaMasDebil(fila: FilaTabla) {
   return AREAS.reduce((min, a) => (fila.porArea[a.id] < fila.porArea[min.id] ? a : min), AREAS[0])
 }
 
-// ---- IVC ---------------------------------------------------------------------------
+// ---- IVC (solo para la directiva y el municipio) ---------------------------------------
 
-export const PESOS_IVC = { participacion: 0.3, diversidad: 0.2, constancia: 0.2, colaboracion: 0.15, gestion: 0.15 }
+export const PESOS_IVC = { participacion: 0.25, diversidad: 0.2, constancia: 0.15, colaboracion: 0.1, gestion: 0.15, renovacion: 0.15 }
 
 export interface IVC {
   total: number
@@ -158,6 +172,7 @@ export interface IVC {
   constancia: number
   colaboracion: number
   gestion: number
+  renovacion: number
 }
 
 export function ivc(junta: Junta, actividades: Actividad[], documentos: Documento[]): IVC {
@@ -177,19 +192,32 @@ export function ivc(junta: Junta, actividades: Actividad[], documentos: Document
   const docsOk = docs.length ? docs.filter((d) => d.estado !== 'pendiente').length / docs.length : 0
   const vigente = junta.periodoHasta > HOY ? 1 : 0
   const gestion = docsOk * 0.7 + vigente * 0.3
+  // Renovación generacional: proporción de jóvenes entre los asistentes (30% = puntaje completo)
+  const qr = propias.reduce((n, a) => n + a.qr, 0)
+  const jov = propias.reduce((n, a) => n + a.jovenes, 0)
+  const renovacion = qr ? Math.min(1, jov / qr / 0.3) : 0
   const total = Math.round(
     100 *
       (participacion * PESOS_IVC.participacion +
         diversidad * PESOS_IVC.diversidad +
         constancia * PESOS_IVC.constancia +
         colaboracion * PESOS_IVC.colaboracion +
-        gestion * PESOS_IVC.gestion),
+        gestion * PESOS_IVC.gestion +
+        renovacion * PESOS_IVC.renovacion),
   )
   const r = (x: number) => Math.round(x * 100)
-  return { total, participacion: r(participacion), diversidad: r(diversidad), constancia: r(constancia), colaboracion: r(colaboracion), gestion: r(gestion) }
+  return {
+    total,
+    participacion: r(participacion),
+    diversidad: r(diversidad),
+    constancia: r(constancia),
+    colaboracion: r(colaboracion),
+    gestion: r(gestion),
+    renovacion: r(renovacion),
+  }
 }
 
-// ---- Fechas ------------------------------------------------------------------------
+// ---- Fechas y números ----------------------------------------------------------------
 
 export function diasEntre(desde: string, hasta: string = HOY) {
   return Math.round((Date.parse(hasta) - Date.parse(desde)) / 86400000)
@@ -209,4 +237,8 @@ export function fechaLarga(iso: string) {
 
 export function miles(n: number) {
   return n.toLocaleString('es-CL')
+}
+
+export function pct(n: number) {
+  return `${Math.round(n * 100)}%`
 }

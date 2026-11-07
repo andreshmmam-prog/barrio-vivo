@@ -1,19 +1,19 @@
 import { Route, Routes } from 'react-router-dom'
 import { BottomNav, MobileFrame } from '../../components/ui'
 import Inicio from './Inicio'
-import Tabla from './Tabla'
+import Manos from './Manos'
 import Participa from './Participa'
-import Mercado from './Mercado'
-import Aprende from './Aprende'
+import Tabla from './Tabla'
 import Perfil from './Perfil'
-import Avisos from './Avisos'
+import Emprendedores from './Emprendedores'
+import Aprende from './Aprende'
 
 const NAV = [
   { to: '/vecino', label: 'Inicio', icon: 'inicio', end: true },
-  { to: '/vecino/tabla', label: 'Tabla', icon: 'trofeo' },
+  { to: '/vecino/manos', label: 'Manos', icon: 'manos' },
   { to: '/vecino/participa', label: 'Participa', icon: 'participa' },
-  { to: '/vecino/mercado', label: 'Mercado', icon: 'mercado' },
-  { to: '/vecino/aprende', label: 'Aprende', icon: 'aprende' },
+  { to: '/vecino/tabla', label: 'Tabla', icon: 'trofeo' },
+  { to: '/vecino/perfil', label: 'Perfil', icon: 'perfil' },
 ]
 
 export default function VecinoApp() {
@@ -21,12 +21,12 @@ export default function VecinoApp() {
     <MobileFrame nav={<BottomNav items={NAV} label="Navegación del vecino" />}>
       <Routes>
         <Route index element={<Inicio />} />
-        <Route path="tabla" element={<Tabla />} />
+        <Route path="manos" element={<Manos />} />
         <Route path="participa" element={<Participa />} />
-        <Route path="mercado" element={<Mercado />} />
-        <Route path="aprende" element={<Aprende />} />
+        <Route path="tabla" element={<Tabla />} />
         <Route path="perfil" element={<Perfil />} />
-        <Route path="avisos" element={<Avisos />} />
+        <Route path="emprendedores" element={<Emprendedores />} />
+        <Route path="aprende" element={<Aprende />} />
       </Routes>
     </MobileFrame>
   )

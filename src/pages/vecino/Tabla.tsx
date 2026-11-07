@@ -1,13 +1,16 @@
 import { useState } from 'react'
 import { AREAS, AREA_BY_ID, type AreaId } from '../../data/areas'
-import { TEMPORADA, VECINO_DEMO } from '../../data/demo'
+import { TEMPORADA } from '../../data/demo'
 import { Icon } from '../../components/Icon'
 import { PageTitle, Tabs } from '../../components/ui'
-import { useTabla } from '../../lib/hooks'
-import { fechaLarga, miles, ordenar, premios, type ModoRanking } from '../../lib/scoring'
+import { useTabla, useVecino } from '../../lib/hooks'
+import { fechaLarga, miles, ordenar, pct, premios, rankingJuventud, type ModoRanking } from '../../lib/scoring'
 
 export default function Tabla() {
   const tabla = useTabla()
+  const v = useVecino()
+  const juv = rankingJuventud(tabla)
+  const lider = juv[0]
   const [modo, setModo] = useState<ModoRanking>('porSocio')
   const [area, setArea] = useState<AreaId | 'todas'>('todas')
   const filtro = area === 'todas' ? undefined : area
@@ -66,6 +69,18 @@ export default function Tabla() {
           ))}
         </div>
 
+        <div className="premio-joven">
+          <span className="area-icon" style={{ width: 48, height: 48 }}><Icon name="joven" size={24} /></span>
+          <div className="grow">
+            <p className="xs bold" style={{ color: 'var(--sol)' }}>PREMIO JUVENTUD BARRIO VIVO</p>
+            <p className="bold" style={{ fontSize: 16 }}>{lider ? lider.junta.nombre : 'Sin datos aún'}</p>
+            <p className="xs" style={{ color: 'var(--gris-claro)' }}>
+              {lider ? `${lider.jovenesPorSocio} jóvenes participando cada 10 socios · ${pct(lider.registrados ? lider.jovenes / lider.registrados : 0)} de sus asistentes` : ''}
+            </p>
+            <p className="xs" style={{ color: 'var(--gris-claro)' }}>Tu junta va {juv.findIndex((f) => f.junta.id === v.juntaId) + 1}°</p>
+          </div>
+        </div>
+
         <div className="seccion">
           <h2>{filtro ? `Ranking ${AREA_BY_ID[filtro].corto}` : 'Ranking general'}</h2>
           <label className="xs bold" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -93,7 +108,7 @@ export default function Tabla() {
             </thead>
             <tbody>
               {orden.map((f, i) => (
-                <tr key={f.junta.id} className={f.junta.id === VECINO_DEMO.juntaId ? 'yo' : ''}>
+                <tr key={f.junta.id} className={f.junta.id === v.juntaId ? 'yo' : ''}>
                   <td className="pos">{i + 1}</td>
                   <td>
                     <div className="bold">{f.junta.nombre}</div>

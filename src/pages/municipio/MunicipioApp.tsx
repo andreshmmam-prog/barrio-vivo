@@ -7,7 +7,8 @@ import { Icon } from '../../components/Icon'
 import { Bar, Chip, Empty, Modal, PasosSemaforo, SEMAFORO, Semaforo } from '../../components/ui'
 import { WebHead, WebShell } from '../../components/WebShell'
 import { useIVC, useTabla } from '../../lib/hooks'
-import { diasEntre, fechaCorta, miles } from '../../lib/scoring'
+import { diasEntre, fechaCorta, miles, pct } from '../../lib/scoring'
+import { CATEGORIAS } from '../vecino/Manos'
 import { useStore } from '../../state/store'
 
 const NAV = [
@@ -76,7 +77,21 @@ function useDatosMunicipio() {
 
     const respondidas = s.necesidades.filter((n) => n.actualizada)
     const tiempo = respondidas.length ? Math.round(respondidas.reduce((n, x) => n + diasEntre(x.enviada, x.actualizada), 0) / respondidas.length) : 0
-    return { activas, ivcSector, cruce, brechas, ivcComunal, alertas, tiempo }
+    // Participación juvenil por sector: jóvenes registrados con QR sobre el total registrado
+    const juvSector = SECTORES.map((sec) => {
+      const xs = aprobadas.filter((x) => sectorDe(x.juntaId) === sec.id)
+      const qr = xs.reduce((n, x) => n + x.qr, 0)
+      const jov = xs.reduce((n, x) => n + x.jovenes, 0)
+      return { sector: sec, share: qr ? jov / qr : 0, jovenes: jov }
+    })
+    const qrTotal = aprobadas.reduce((n, x) => n + x.qr, 0)
+    const juvComunal = qrTotal ? aprobadas.reduce((n, x) => n + x.jovenes, 0) / qrTotal : 0
+    const cumplidas = s.ayudas.filter((a) => a.estado === 'cumplida')
+    const porCategoria = (Object.keys(CATEGORIAS) as (keyof typeof CATEGORIAS)[])
+      .map((c) => ({ categoria: CATEGORIAS[c], n: cumplidas.filter((a) => a.categoria === c).length, mayores: cumplidas.filter((a) => a.categoria === c && a.autorTramo === '60+').length }))
+      .sort((a, b) => b.n - a.n)
+    const horasAyuda = cumplidas.reduce((n, a) => n + a.horas, 0)
+    return { activas, ivcSector, cruce, brechas, ivcComunal, alertas, tiempo, juvSector, juvComunal, cumplidas, porCategoria, horasAyuda }
   }, [s, ivcs])
 }
 
@@ -102,6 +117,8 @@ function PanelTerritorial() {
         <div className="kpi"><p className="label">Juntas activas</p><p className="num">{d.activas.length}</p><p className="sub">de {s.juntas.length} en la plataforma</p></div>
         <div className="kpi"><p className="label">Necesidades abiertas</p><p className="num">{abiertas.length}</p><p className="sub">{miles(abiertas.reduce((n, x) => n + x.apoyos, 0))} apoyos de vecinos</p></div>
         <div className="kpi"><p className="label">Tiempo de respuesta</p><p className="num">{d.tiempo} días</p><p className="sub">promedio · meta: menos de 30</p></div>
+        <div className="kpi"><p className="label">Ayudas entre vecinos</p><p className="num">{d.cumplidas.length}</p><p className="sub">{d.horasAyuda} horas de voluntariado</p></div>
+        <div className="kpi"><p className="label">Participación juvenil</p><p className="num">{pct(d.juvComunal)}</p><p className="sub">asistentes de 14 a 29 años</p></div>
         <div className="kpi" style={{ background: 'var(--rojo-suave)', borderColor: '#E8B4AE' }}><p className="label" style={{ color: 'var(--rojo-tinta)' }}>Alertas</p><p className="num" style={{ color: 'var(--rojo-tinta)' }}>{d.alertas.length}</p><p className="sub" style={{ color: 'var(--rojo-tinta)' }}>requieren acción</p></div>
       </div>
 
@@ -201,6 +218,41 @@ function PanelTerritorial() {
           </table>
         </div>
       </section>
+
+      <div className="grid-2">
+        <section className="panel">
+          <div>
+            <h2>Participación juvenil por sector</h2>
+            <p className="small muted">% de asistentes de 14 a 29 años, registrados con QR</p>
+          </div>
+          <div className="stack-sm">
+            {d.juvSector.map((x) => (
+              <div key={x.sector.id} className="brecha" style={x.share < 0.15 ? { fontWeight: 700, color: 'var(--rojo-tinta)' } : undefined}>
+                <span>{x.sector.nombre}</span>
+                <Bar value={Math.min(100, (x.share / 0.4) * 100)} color={x.share < 0.15 ? 'var(--rojo)' : '#C9541F'} track="var(--papel-3)" height={14} />
+                <b style={{ textAlign: 'right' }}>{pct(x.share)}</b>
+              </div>
+            ))}
+          </div>
+          <p className="xs muted">Escala hasta 40%. Meta de renovación: 30%. Información para la Oficina de la Juventud.</p>
+        </section>
+        <section className="panel">
+          <div>
+            <h2>Manos Vecinas</h2>
+            <p className="small muted">Ayudas cumplidas entre vecinos por tipo · de ellas, pedidas por adultos mayores</p>
+          </div>
+          <div className="stack-sm">
+            {d.porCategoria.map((c) => (
+              <div key={c.categoria} className="brecha">
+                <span>{c.categoria}</span>
+                <Bar value={(c.n / Math.max(1, d.porCategoria[0].n)) * 100} color="#C2366B" track="var(--papel-3)" height={14} />
+                <b style={{ textAlign: 'right' }}>{c.n}</b>
+              </div>
+            ))}
+          </div>
+          <p className="xs muted">{d.cumplidas.filter((a) => a.autorTramo === '60+').length} de {d.cumplidas.length} ayudas fueron para adultos mayores.</p>
+        </section>
+      </div>
 
       <div className="grid-2">
         <section className="panel">
@@ -349,7 +401,7 @@ function Juntas() {
         <div className="scroll-x">
           <table className="tabla" style={{ minWidth: 820 }}>
             <thead>
-              <tr><th>Junta</th><th>Sector</th><th>IVC</th><th>Socios activos</th><th>Perfil de áreas</th><th>Área más débil</th><th>Documentos</th></tr>
+              <tr><th>Junta</th><th>Sector</th><th>IVC</th><th>Socios activos</th><th>Perfil de áreas</th><th>Área más débil</th><th>Jóvenes</th><th>Documentos</th></tr>
             </thead>
             <tbody>
               {filas.map((f) => {
@@ -371,6 +423,7 @@ function Juntas() {
                       </div>
                     </td>
                     <td><span className="chip" style={{ background: debil.suave, color: debil.tinta }}>{debil.corto}</span></td>
+                    <td>{f.registrados ? pct(f.jovenes / f.registrados) : '—'}</td>
                     <td>{ok === docs.length ? <Chip>Al día</Chip> : <Chip tone="sol">{docs.length - ok} pendientes</Chip>}</td>
                   </tr>
                 )
@@ -411,6 +464,8 @@ function Informe() {
           <li><b>Mayor brecha:</b> {masBaja.area.nombre}. Solo el {masBaja.pct}% de las juntas realizó actividades en esta área.</li>
           <li><b>Sector prioritario:</b> {sectorBajo.nombre}, con vitalidad {d.ivcSector[sectorBajo.id]} sobre 100.</li>
           <li><b>Respuesta municipal:</b> {resueltas} necesidades resueltas; el tiempo promedio de respuesta es de {d.tiempo} días.</li>
+          <li><b>Juventud:</b> el {pct(d.juvComunal)} de los asistentes tiene entre 14 y 29 años; el sector con menos jóvenes es {[...d.juvSector].sort((a, b) => a.share - b.share)[0].sector.nombre}.</li>
+          <li><b>Manos Vecinas:</b> {d.cumplidas.length} ayudas cumplidas entre vecinos, {d.horasAyuda} horas de voluntariado; la más pedida es {d.porCategoria[0].categoria.toLowerCase()}.</li>
           <li><b>Junta destacada:</b> {lider.junta.nombre}, primer lugar de la tabla general por puntos cada 10 socios.</li>
         </ul>
         <h2 style={{ fontSize: 17 }}>Recomendaciones</h2>

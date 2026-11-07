@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AREAS, AREA_BY_ID, type AreaId } from '../../data/areas'
-import { HOY } from '../../data/demo'
+import { HOY, jovenesEsperados } from '../../data/demo'
+import type { Publico } from '../../data/types'
 import { Icon } from '../../components/Icon'
 import { Modal, PageTitle } from '../../components/ui'
 import { REGLAS, puntosActividad } from '../../lib/scoring'
@@ -22,12 +23,13 @@ export default function NuevaActividad() {
   const [aliada, setAliada] = useState('mirador')
   const [hito, setHito] = useState(false)
   const [qrOpen, setQrOpen] = useState(false)
+  const [publico, setPublico] = useState<Publico>('todas')
+  const [jovenes, setJovenes] = useState(0)
 
   const otras = s.juntas.filter((j) => j.id !== JUNTA_DIRECTIVA && j.estado === 'activa')
-  const primera = !s.actividades.some((a) => a.juntaId === JUNTA_DIRECTIVA && a.area === area && a.estado === 'aprobada')
   const d = useMemo(
-    () => puntosActividad({ asistentes, fotos, qr, alianzaCon: alianza ? aliada : undefined, hito }, primera),
-    [asistentes, fotos, qr, alianza, aliada, hito, primera],
+    () => puntosActividad({ asistentes, fotos, qr, jovenes, alianzaCon: alianza ? aliada : undefined, hito }),
+    [asistentes, fotos, qr, jovenes, alianza, aliada, hito],
   )
   const revision = d.total > REGLAS.umbralRevision || !d.verificada
 
@@ -40,7 +42,7 @@ export default function NuevaActividad() {
         onSubmit={(e) => {
           e.preventDefault()
           if (!nombre.trim()) return
-          const r = registrarActividad({ juntaId: JUNTA_DIRECTIVA, nombre: nombre.trim(), area, fecha, lugar, asistentes, fotos, qr, alianzaCon: alianza ? aliada : undefined, hito })
+          const r = registrarActividad({ juntaId: JUNTA_DIRECTIVA, nombre: nombre.trim(), area, publico, fecha, lugar, asistentes, fotos, qr, jovenes, alianzaCon: alianza ? aliada : undefined, hito })
           toast(r.pendiente ? `Enviada a validación: +${r.puntos} puntos al aprobarse` : `¡Publicada! +${r.puntos} puntos para tu junta`)
           nav('/directiva/actividades')
         }}
@@ -67,6 +69,16 @@ export default function NuevaActividad() {
           </div>
           <p className="xs muted">{AREA_BY_ID[area].ejemplos}</p>
         </fieldset>
+
+        <label className="field">
+          ¿A quién va dirigida?
+          <select value={publico} onChange={(e) => setPublico(e.target.value as Publico)}>
+            <option value="todas">Todas las edades</option>
+            <option value="jovenes">Jóvenes (14 a 29 años)</option>
+            <option value="ninos">Niños y niñas</option>
+            <option value="mayores">Adultos mayores</option>
+          </select>
+        </label>
 
         {area === 'seguridad' && (
           <label className="check-row">
@@ -125,6 +137,13 @@ export default function NuevaActividad() {
             {qr > 0 ? `${qr} registrados` : 'QR de asistencia'}
           </button>
         </div>
+        {qr > 0 && !hito && (
+          <label className="field">
+            Jóvenes de 14 a 29 años registrados con QR
+            <input type="number" min={0} max={qr} value={jovenes} onChange={(e) => setJovenes(Math.max(0, Math.min(qr, Number(e.target.value) || 0)))} />
+            <small>El QR registra el tramo de edad de cada asistente; la junta solo ve el total.</small>
+          </label>
+        )}
         {fotos === 0 && (
           <button type="button" className="btn btn-borde btn-chico" onClick={() => setFotos(4)}>
             Usar 4 fotos de ejemplo
@@ -136,7 +155,7 @@ export default function NuevaActividad() {
             Base {REGLAS.base} + participación {d.participacion}
             {d.verificada ? ` · verificada ×${REGLAS.multVerificada.toString().replace('.', ',')}` : ' · sin verificar'}
             {d.alianza ? ` · alianza +${d.alianza}` : ''}
-            {d.primeraVez ? ` · primera vez en ${AREA_BY_ID[area].corto} +${d.primeraVez}` : ''}
+            {d.juvenil ? ` · bono juvenil +${d.juvenil}` : ''}
           </div>
           <div className="num" style={{ fontSize: 28 }}>+{d.total}</div>
         </div>
@@ -155,7 +174,9 @@ export default function NuevaActividad() {
           <button
             className="btn btn-block"
             onClick={() => {
-              setQr(Math.max(1, Math.round(asistentes * 0.85)))
+              const n = Math.max(1, Math.round(asistentes * 0.85))
+              setQr(n)
+              setJovenes(jovenesEsperados(n, publico))
               setQrOpen(false)
             }}
           >
