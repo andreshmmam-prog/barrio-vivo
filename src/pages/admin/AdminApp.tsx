@@ -6,6 +6,7 @@ import type { Junta } from '../../data/types'
 import { Icon } from '../../components/Icon'
 import { AreaChip, Chip, Empty } from '../../components/ui'
 import { WebHead, WebShell } from '../../components/WebShell'
+import { CatalogoFondos } from '../../components/fondos'
 import { useTabla } from '../../lib/hooks'
 import { PESOS_IVC, REGLAS, fechaCorta, fechaLarga, miles, pct, premios, puntosActividad, rankingJuventud } from '../../lib/scoring'
 import { useStore } from '../../state/store'
@@ -16,6 +17,7 @@ const NAV = [
   { to: '/admin/juntas', label: 'Juntas', icon: 'socios' },
   { to: '/admin/premiacion', label: 'Premiación', icon: 'trofeo' },
   { to: '/admin/moderacion', label: 'Moderación', icon: 'escudo' },
+  { to: '/admin/fondos', label: 'Catálogo de fondos', icon: 'documento' },
   { to: '/admin/reglas', label: 'Reglas de puntaje', icon: 'filtro' },
 ]
 
@@ -29,6 +31,7 @@ export default function AdminApp() {
         <Route path="premiacion" element={<Premiacion />} />
         <Route path="moderacion" element={<Moderacion />} />
         <Route path="reglas" element={<Reglas />} />
+        <Route path="fondos" element={<><WebHead title="Catálogo de fondos" sub="Fondos del Estado, regionales y privados, cargados desde sus bases oficiales." /><CatalogoFondos modo="admin" /></>} />
       </Routes>
     </WebShell>
   )
@@ -360,6 +363,9 @@ function Reglas() {
           <h2>Gestión y transparencia</h2>
           <ul className="small" style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
             <li>Actas: la app las escribe con lo registrado en la asamblea (asistentes, quórum y votación de cada acuerdo); se imprimen para firmar.</li>
+            <li>Horas de voluntariado: las certifica la junta, con firma de presidencia y secretaría, y el municipio cuando hay convenio. Barrio Vivo solo guarda el registro y el código de verificación.</li>
+            <li>Las horas de convocatorias con QR se aprueban solas; las de Manos Vecinas las revisa la directiva cada mes. Una ayuda certifica como máximo {REGLAS.topeAyuda} horas. Muchas ayudas entre las mismas dos personas quedan marcadas, y las de menores de 18 piden autorización del apoderado.</li>
+            <li>Fondos: cada ficha sale de las bases oficiales, muestra cuándo se revisó y enlaza a las bases. La app prepara la carpeta; la postulación se hace en el portal del fondo.</li>
             <li>Tesorería: solo quien ejerce la tesorería registra; los socios ven el saldo y cada movimiento. Un gasto sin boleta queda marcado.</li>
             <li>Encuesta de barrio: anual, anónima, las mismas cinco preguntas; la junta y el municipio ven solo promedios.</li>
             <li>Memoria del barrio: quien sube una foto con otras personas debe tener su permiso.</li>

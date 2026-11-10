@@ -92,6 +92,7 @@ export default function Selector() {
 
       <div className="selector-pie">
         <span>Datos de ejemplo. Lo que hagas en la demo queda guardado en este navegador.</span>
+        <Link to="/verificar" className="btn btn-borde btn-chico">Verificar un certificado</Link>
         <button
           className="btn btn-borde btn-chico"
           onClick={() => {

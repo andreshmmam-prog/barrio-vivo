@@ -3,6 +3,7 @@ import { Link, Route, Routes } from 'react-router-dom'
 import { AREAS, AREA_BY_ID, type AreaId } from '../../data/areas'
 import { COMUNA, ENCUESTA, ENCUESTA_SECTOR, HOY, SECTORES, TEMPORADA, VULNERABILIDAD } from '../../data/demo'
 import { coma } from '../../components/barrio'
+import { CatalogoFondos } from '../../components/fondos'
 import type { EstadoNecesidad, RutaNecesidad, SectorId } from '../../data/types'
 import { Icon } from '../../components/Icon'
 import { Bar, CAMINOS, Chip, Empty, Modal, PasosSemaforo, SEMAFORO, Semaforo, cerrada } from '../../components/ui'
@@ -16,6 +17,7 @@ const NAV = [
   { to: '/municipio', label: 'Panel territorial', icon: 'mapa', end: true },
   { to: '/municipio/necesidades', label: 'Necesidades', icon: 'megafono' },
   { to: '/municipio/juntas', label: 'Juntas', icon: 'socios' },
+  { to: '/municipio/fondos', label: 'Fondos municipales', icon: 'trofeo' },
   { to: '/municipio/informe', label: 'Informe al concejo', icon: 'libro' },
 ]
 
@@ -26,6 +28,7 @@ export default function MunicipioApp() {
         <Route index element={<PanelTerritorial />} />
         <Route path="necesidades" element={<Necesidades />} />
         <Route path="juntas" element={<Juntas />} />
+        <Route path="fondos" element={<><WebHead title="Fondos municipales" sub="Carga tus fondos desde las bases y publica los resultados de cada postulación." /><CatalogoFondos modo="municipio" /></>} />
         <Route path="informe" element={<Informe />} />
       </Routes>
     </WebShell>

@@ -14,9 +14,9 @@ Todavía no tiene base de datos ni inicio de sesión real.
 | Perfil | Tipo | Qué puede hacer |
 | --- | --- | --- |
 | Vecino | App móvil | El Queltehue avisa, emergencias, Manos Vecinas (ayudas, voluntariado y sección jóvenes), consultas y necesidades con semáforo (respuesta u obra con avance), sellos de avance, tabla por liga y premios, perfil con horas certificadas, insignias, comunidades, letra grande y mapudungun. Mi junta: asambleas y actas, cuentas de la junta, reserva de la sede, memoria del barrio y encuesta anual |
-| Directiva | App móvil | Panel con radar, índice de vitalidad y jóvenes, registrar actividades con público objetivo, fotos y QR o lista en papel, unir necesidades iguales, cargar votos y necesidades de la asamblea, asambleas en vivo con quórum, acuerdos y acta automática, calendario de vencimientos, fondos con carpeta de postulación, tesorería transparente, reservas de la sede, aprobar propuestas juveniles, avisos oficiales, resumen semanal para WhatsApp, documentos, socios por tramo y traspaso de directiva |
-| Administración | Panel web | Validar actividades, incorporar juntas, premiación (7 áreas + Premio Juventud), moderación y reglas |
-| Municipio | Panel web | Vitalidad por sector, prioridad territorial (vitalidad × vulnerabilidad), encuesta de percepción por sector, mapa de necesidades, brechas por área, participación juvenil, Manos Vecinas, alertas, responder necesidades e informe al concejo |
+| Directiva | App móvil | Panel con radar, índice de vitalidad y jóvenes, registrar actividades con público objetivo, fotos y QR o lista en papel, unir necesidades iguales, cargar votos y necesidades de la asamblea, asambleas en vivo con quórum, acuerdos y acta automática, calendario de vencimientos, fondos con carpeta de postulación (requisitos y antigüedad de certificados según bases), revisión mensual de horas de voluntariado, tesorería transparente, reservas de la sede, aprobar propuestas juveniles, avisos oficiales, resumen semanal para WhatsApp, documentos, socios por tramo y traspaso de directiva |
+| Administración | Panel web | Catálogo de fondos desde sus bases, validar actividades, incorporar juntas, premiación (7 áreas + Premio Juventud), moderación y reglas |
+| Municipio | Panel web | Vitalidad por sector, prioridad territorial (vitalidad × vulnerabilidad), encuesta de percepción por sector, mapa de necesidades, fondos municipales con resultados de postulación, brechas por área, participación juvenil, Manos Vecinas, alertas, responder necesidades e informe al concejo |
 
 En el perfil Vecino puedes entrar como Marta (52 años, socia) o como Javiera (22 años, embajadora digital) para ver la experiencia adulta y la joven.
 
@@ -68,3 +68,7 @@ para calibrar durante el piloto.
 
 Conectar Supabase: inicio de sesión por perfil, base de datos real, almacenamiento de fotos y documentos,
 y reglas de acceso para que el municipio vea solo datos agregados.
+
+## Certificados de voluntariado
+
+Los emite la junta de vecinos, con firma de presidencia y secretaría, y el municipio cuando hay convenio. Barrio Vivo solo respalda el registro: cada certificado tiene un código que se comprueba en `#/verificar`.

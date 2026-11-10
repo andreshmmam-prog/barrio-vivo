@@ -1,29 +1,30 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { AREA_BY_ID } from '../../data/areas'
-import { FONDOS, HOY } from '../../data/demo'
+import { Link, useSearchParams } from 'react-router-dom'
+import { HOY } from '../../data/demo'
 import type { Movimiento } from '../../data/types'
 import { Icon } from '../../components/Icon'
 import { Bar, Chip, Empty, Modal, PageTitle, Tabs } from '../../components/ui'
-import { carpeta, cuentas } from '../../lib/gestion'
-import { diasEntre, fechaCorta, fechaLarga, miles } from '../../lib/scoring'
+import { alertasHora, carpeta, cuentas } from '../../lib/gestion'
+import { REGLAS, diasEntre, fechaCorta, fechaLarga, miles } from '../../lib/scoring'
 import { useStore } from '../../state/store'
 import { JUNTA_DIRECTIVA } from './config'
 
-type Tab = 'fondos' | 'cuentas' | 'sede'
+type Tab = 'fondos' | 'horas' | 'cuentas' | 'sede'
 
 export default function Gestion() {
-  const [tab, setTab] = useState<Tab>('fondos')
+  const [params] = useSearchParams()
+  const [tab, setTab] = useState<Tab>((params.get('tab') as Tab) || 'fondos')
   return (
     <>
-      <PageTitle title="Gestión" sub="Fondos, cuentas claras y la sede" />
+      <PageTitle title="Gestión" sub="Fondos, horas de voluntariado, cuentas y la sede" />
       <div className="pad stack" style={{ paddingTop: 6 }}>
         <div className="row">
           <Link to="/directiva/documentos" className="btn btn-borde btn-chico"><Icon name="documento" size={16} /> Documentos</Link>
           <Link to="/directiva/socios" className="btn btn-borde btn-chico"><Icon name="socios" size={16} /> Socios</Link>
         </div>
-        <Tabs<Tab> value={tab} onChange={setTab} label="Gestión" options={[{ value: 'fondos', label: 'Fondos' }, { value: 'cuentas', label: 'Cuentas' }, { value: 'sede', label: 'Sede' }]} />
+        <Tabs<Tab> value={tab} onChange={setTab} label="Gestión" options={[{ value: 'fondos', label: 'Fondos' }, { value: 'horas', label: 'Horas' }, { value: 'cuentas', label: 'Cuentas' }, { value: 'sede', label: 'Sede' }]} />
         {tab === 'fondos' && <Fondos />}
+        {tab === 'horas' && <Horas />}
         {tab === 'cuentas' && <Cuentas />}
         {tab === 'sede' && <Sede />}
       </div>
@@ -31,45 +32,63 @@ export default function Gestion() {
   )
 }
 
+const ESTADO_POSTULACION = { postulado: 'Postulado', adjudicado: 'Adjudicado', no_adjudicado: 'No adjudicado' } as const
+
 function Fondos() {
   const { s, dispatch, toast } = useStore()
   const [abierto, setAbierto] = useState<string | null>(null)
-  const fondo = FONDOS.find((f) => f.id === abierto)
+  const fondo = s.fondos.find((f) => f.id === abierto)
   const c = fondo ? carpeta(s, JUNTA_DIRECTIVA, fondo) : null
   return (
     <>
-      <p className="small">La app arma la carpeta con lo que la junta ya registró: necesidades votadas, actividades con fotos, actas y documentos.</p>
-      {FONDOS.filter((f) => f.cierre >= HOY).map((f) => {
+      <p className="small">La app arma la carpeta con lo que la junta ya registró y revisa cada requisito contra las bases. La postulación se hace en el portal de cada fondo.</p>
+      {s.fondos.filter((f) => f.cierre >= HOY).sort((a, b) => a.cierre.localeCompare(b.cierre)).map((f) => {
         const k = carpeta(s, JUNTA_DIRECTIVA, f)
         const dias = diasEntre(HOY, f.cierre)
-        const postulado = s.postulaciones.includes(f.id)
+        const estado = s.postulaciones[f.id]
+        const abre = f.apertura && f.apertura > HOY
         return (
           <article key={f.id} className="card stack-sm">
-            <div className="between" style={{ alignItems: 'flex-start' }}>
+            <div className="between" style={{ alignItems: 'flex-start', gap: 8 }}>
               <div>
                 <p className="titulo">{f.nombre}</p>
                 <p className="xs muted">{f.fuente} · {f.monto}</p>
               </div>
-              {postulado ? <Chip>Postulado</Chip> : <Chip tone={dias < 30 ? 'sol' : 'gris'}>Cierra en {dias} días</Chip>}
+              {estado ? (
+                <Chip tone={estado === 'no_adjudicado' ? 'gris' : undefined}>{ESTADO_POSTULACION[estado]}</Chip>
+              ) : abre ? (
+                <Chip tone="gris">Abre {fechaCorta(f.apertura!)}</Chip>
+              ) : (
+                <Chip tone={dias <= 30 ? 'sol' : 'gris'}>Cierra en {dias} días</Chip>
+              )}
             </div>
-            <div className="chips">
-              {f.areas.map((a) => <span key={a} className="chip" style={{ background: AREA_BY_ID[a].suave, color: AREA_BY_ID[a].tinta }}>{AREA_BY_ID[a].corto}</span>)}
-            </div>
+            {f.fechasEstimadas && <p className="xs" style={{ color: 'var(--sol-tinta)', fontWeight: 700 }}>Fechas estimadas según la convocatoria anterior. Se confirman cuando salgan las bases.</p>}
             <div className="resultado">
               <div className="between xs"><span>Carpeta lista</span><b>{k.listos} de {k.lista.length}</b></div>
               <Bar value={(k.listos / k.lista.length) * 100} height={8} color={k.listos === k.lista.length ? 'var(--verde)' : 'var(--sol)'} />
             </div>
-            <button className="btn btn-borde btn-chico" onClick={() => setAbierto(f.id)}>Ver la carpeta</button>
+            <p className="xs muted">
+              {f.ejemplo ? 'Fondo de ejemplo' : f.bases ? <a href={f.bases} target="_blank" rel="noreferrer">Ver bases</a> : 'Bases cargadas por el municipio'}
+              {' · '}revisado el {fechaCorta(f.revisado)} por {f.cargadoPor === 'municipio' ? 'el municipio' : 'Barrio Vivo'}
+            </p>
+            <button className="btn btn-borde btn-chico" onClick={() => setAbierto(f.id)}>Ver requisitos y carpeta</button>
           </article>
         )
       })}
-      <p className="xs muted">Fondos de ejemplo. En el piloto se cargan los fondos reales de la comuna y la región.</p>
+      <p className="xs muted">Te avisamos 30, 15 y 5 días antes de cada cierre.</p>
 
       <Modal open={!!fondo} onClose={() => setAbierto(null)} title="Carpeta de postulación">
         {fondo && c && (
           <div className="modal-body">
             <p className="bold">{fondo.nombre}</p>
-            <p className="xs muted">Cierra el {fechaLarga(fondo.cierre)} · {fondo.monto}</p>
+            <p className="xs muted">
+              {fondo.apertura ? `Postulación del ${fechaLarga(fondo.apertura)} al ${fechaLarga(fondo.cierre)}` : `Cierra el ${fechaLarga(fondo.cierre)}`}
+              {fondo.fechasEstimadas ? ' (estimado)' : ''} · {fondo.monto}
+            </p>
+            <div className="regla">
+              <p className="xs bold">Quién puede postular</p>
+              <p className="small">{fondo.quienes}</p>
+            </div>
             <ul className="requisitos">
               {c.lista.map((r) => (
                 <li key={r.texto} data-ok={r.ok}>
@@ -84,19 +103,79 @@ function Fondos() {
                 {c.necesidades.slice(0, 3).map((n) => <p key={n.id} className="xs">▲ {n.apoyos} · {n.titulo}</p>)}
               </div>
             )}
-            <button className="btn btn-borde btn-block" onClick={() => toast('En el piloto la carpeta se descarga en PDF con fotos y actas')}>
-              <Icon name="descargar" size={18} /> Descargar carpeta
-            </button>
+            <p className="xs muted">Revisa siempre las bases oficiales: la carpeta ayuda, pero las bases mandan.</p>
+            <div className="row">
+              {fondo.bases && <a className="btn btn-borde btn-chico" href={fondo.bases} target="_blank" rel="noreferrer">Bases</a>}
+              <button className="btn btn-borde btn-chico" onClick={() => toast('En el piloto la carpeta se descarga en PDF con documentos, fotos y actas')}>
+                <Icon name="descargar" size={16} /> Carpeta
+              </button>
+            </div>
+            {fondo.portal && (
+              fondo.portal.startsWith('http')
+                ? <a className="btn btn-sol btn-block" href={fondo.portal} target="_blank" rel="noreferrer">Ir a postular al portal</a>
+                : <p className="small"><b>Dónde se postula:</b> {fondo.portal}</p>
+            )}
             <button
               className="btn btn-block"
-              disabled={s.postulaciones.includes(fondo.id)}
-              onClick={() => { dispatch({ t: 'postular', id: fondo.id }); setAbierto(null); toast('Postulación registrada. Te avisaremos el resultado') }}
+              disabled={!!s.postulaciones[fondo.id]}
+              onClick={() => { dispatch({ t: 'postular', id: fondo.id }); setAbierto(null); toast('Postulación registrada. Cuando haya resultado se verá aquí') }}
             >
-              {s.postulaciones.includes(fondo.id) ? 'Ya postulaste' : 'Marcar como postulado'}
+              {s.postulaciones[fondo.id] ? ESTADO_POSTULACION[s.postulaciones[fondo.id]] : 'Ya postulamos: registrar'}
             </button>
           </div>
         )}
       </Modal>
+    </>
+  )
+}
+
+function Horas() {
+  const { s, dispatch, toast } = useStore()
+  const junta = s.juntas.find((j) => j.id === JUNTA_DIRECTIVA)!
+  const pend = s.horas.filter((h) => h.juntaId === JUNTA_DIRECTIVA && h.estado === 'por_revisar').sort((a, b) => a.fecha.localeCompare(b.fecha))
+  const limpias = pend.filter((h) => alertasHora(h, s.horas).length === 0)
+  const aprobadasMes = s.horas.filter((h) => h.juntaId === JUNTA_DIRECTIVA && h.estado === 'aprobada' && h.fecha.slice(0, 7) === HOY.slice(0, 7))
+  const ORIGEN = { convocatoria: 'Convocatoria', ayuda: 'Manos Vecinas', actividad: 'Actividad', embajador: 'Embajador digital' }
+  return (
+    <>
+      <p className="small">
+        La junta certifica las horas de voluntariado. Antes, la directiva las revisa una vez al mes. Las convocatorias con asistencia por QR quedan aprobadas solas.
+      </p>
+      <div className="row">
+        <div className="card" style={{ padding: 10 }}><p className="xs muted">Por revisar</p><p className="num" style={{ fontSize: 24 }}>{pend.reduce((n, h) => n + h.horas, 0)} h</p></div>
+        <div className="card" style={{ padding: 10 }}><p className="xs muted">Aprobadas este mes</p><p className="num" style={{ fontSize: 24 }}>{aprobadasMes.reduce((n, h) => n + h.horas, 0)} h</p></div>
+      </div>
+      {limpias.length > 0 && (
+        <button className="btn btn-block" onClick={() => { dispatch({ t: 'revisarHora', ids: limpias.map((h) => h.id), ok: true }); toast(`${limpias.length} registros aprobados`) }}>
+          <Icon name="check" size={18} /> Aprobar los {limpias.length} registros sin alertas
+        </button>
+      )}
+      {pend.length === 0 && <Empty>No hay horas por revisar.</Empty>}
+      {pend.map((h) => {
+        const al = alertasHora(h, s.horas)
+        const bloqueada = h.tramo === '14-17' && !h.autorizacion
+        return (
+          <article key={h.id} className="card stack-sm" style={al.length ? { borderColor: 'var(--sol)' } : undefined}>
+            <div className="between">
+              <b className="small">{h.persona}</b>
+              <span className="num" style={{ fontSize: 16 }}>{h.horas} h</span>
+            </div>
+            <p className="xs muted">{ORIGEN[h.origen]} · {fechaCorta(h.fecha)} · {h.detalle}{h.con ? ` · con ${h.con}` : ''}</p>
+            {al.map((x) => <p key={x} className="xs" style={{ color: 'var(--sol-tinta)', fontWeight: 700 }}>⚠ {x}</p>)}
+            <div className="row">
+              <button className="btn btn-borde btn-chico" onClick={() => { dispatch({ t: 'revisarHora', ids: [h.id], ok: false }); toast('Registro rechazado') }}>Rechazar</button>
+              {bloqueada ? (
+                <button className="btn btn-chico btn-borde" onClick={() => { dispatch({ t: 'autorizarHora', id: h.id }); toast('Autorización del apoderado registrada') }}>Registrar autorización</button>
+              ) : (
+                <button className="btn btn-chico" onClick={() => { dispatch({ t: 'revisarHora', ids: [h.id], ok: true }); toast('Horas aprobadas') }}>Aprobar</button>
+              )}
+            </div>
+          </article>
+        )
+      })}
+      <p className="xs muted">
+        Una ayuda certifica como máximo {REGLAS.topeAyuda} horas. Los certificados los firman {junta.directiva.filter((d) => d.cargo !== 'Tesorería').map((d) => `${d.nombre} (${d.cargo.toLowerCase()})`).join(' y ')}.
+      </p>
     </>
   )
 }

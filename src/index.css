@@ -393,3 +393,15 @@ img { max-width: 100%; }
 .mapa-puntos { grid-template-rows: 130px 130px; }
 .acceso > span:last-child { text-align: center; line-height: 1.2; overflow-wrap: anywhere; }
 .letra-grande .accesos { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 14px; }
+
+/* ---- Certificado ---- */
+.cert-detalle { width: 100%; font-size: 12px; border-collapse: collapse; margin: 4px 0; }
+.cert-detalle td { padding: 3px 0; border-bottom: 1px dashed var(--linea); text-align: left; }
+.cert-detalle td:last-child { text-align: right; font-weight: 700; white-space: nowrap; }
+.firmas { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 10px; width: 100%; margin-top: 14px; }
+.firmas div { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; text-align: center; }
+.firmas span { width: 100%; border-top: 1px solid var(--tinta); margin-bottom: 4px; }
+.firmas small { color: var(--gris); }
+.cert-pie { display: flex; gap: 12px; align-items: center; width: 100%; border-top: 1px solid var(--linea); padding-top: 10px; margin-top: 10px; }
+.verificar { max-width: 560px; margin: 0 auto; padding: 32px 16px; display: flex; flex-direction: column; gap: 16px; }
+.verificar h1 { font-size: 26px; }

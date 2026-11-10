@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { HOY, LECCIONES, TRAMOS, esJoven } from '../../data/demo'
+import { LECCIONES, TRAMOS, esJoven } from '../../data/demo'
 import { Icon } from '../../components/Icon'
 import { CambiarPerfil, Chip, Modal, PageTitle } from '../../components/ui'
 import { useVecino } from '../../lib/hooks'
-import { fechaLarga } from '../../lib/scoring'
 import { useStore } from '../../state/store'
 import { AVISO_MAPU } from '../../data/mapudungun'
+import { Certificado, codigoCertificado } from '../../components/certificado'
 
 export default function Perfil() {
   const { s, dispatch } = useStore()
@@ -49,7 +49,8 @@ export default function Perfil() {
         <div className="card stack-sm" style={{ background: 'var(--tinta)', color: '#fff', border: 'none' }}>
           <p className="small" style={{ color: 'var(--gris-claro)' }}>Horas de voluntariado certificadas</p>
           <p className="num" style={{ fontSize: 44, color: 'var(--sol)' }}>{v.horas} h</p>
-          <p className="small" style={{ color: 'var(--gris-claro)' }}>Actividades verificadas, convocatorias y ayudas de Manos Vecinas.</p>
+          <p className="small" style={{ color: 'var(--gris-claro)' }}>Las certifica tu junta. Las convocatorias con QR cuentan de inmediato; las ayudas, cuando la directiva las revisa.</p>
+          {v.porRevisar > 0 && <p className="small" style={{ color: 'var(--sol)' }}>{v.porRevisar} h por revisar este mes</p>}
           <button className="btn btn-sol btn-block" onClick={() => setCert(true)}>
             <Icon name="descargar" size={18} /> Ver mi certificado
           </button>
@@ -122,15 +123,8 @@ export default function Perfil() {
 
       <Modal open={cert} onClose={() => setCert(false)} title="Certificado de voluntariado">
         <div className="modal-body">
-          <div className="certificado">
-            <Icon name="trofeo" size={36} />
-            <p className="xs bold muted" style={{ letterSpacing: 1 }}>BARRIO VIVO CERTIFICA QUE</p>
-            <h3>{v.nombre}</h3>
-            <p className="small">realizó voluntariado comunitario en la Junta de Vecinos {v.junta.nombre} por</p>
-            <p className="num">{v.horas} horas</p>
-            <p className="small muted">en actividades verificadas, convocatorias de voluntariado y ayudas entre vecinos con registro de asistencia.</p>
-            <p className="xs muted">Emitido el {fechaLarga(HOY)} · Código de verificación BV-{v.juntaId.toUpperCase()}-{v.id.toUpperCase()}</p>
-          </div>
+          <Certificado v={v} junta={v.junta} horas={v.horas} base={v.horasBase} aprobadas={v.aprobadas} />
+          <Link to={`/verificar/${codigoCertificado(v)}`} className="btn btn-borde btn-block">Ver cómo lo verifica quien lo recibe</Link>
           <button className="btn btn-block" onClick={() => window.print()}>
             <Icon name="descargar" size={18} /> Imprimir o guardar en PDF
           </button>

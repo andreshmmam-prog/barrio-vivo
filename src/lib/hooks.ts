@@ -23,9 +23,13 @@ export function useIVC() {
 export function useVecino() {
   const { s } = useStore()
   const v = VECINOS.find((x) => x.id === s.vecinoId) ?? VECINOS[0]
-  const horas = v.horasBase + (s.horasExtra[v.id] ?? 0)
+  const propias = s.horas.filter((h) => h.vecinoId === v.id)
+  const aprobadas = propias.filter((h) => h.estado === 'aprobada')
+  const porRevisar = propias.filter((h) => h.estado === 'por_revisar').reduce((n, h) => n + h.horas, 0)
+  // Horas certificadas = historial anterior + registros aprobados por la directiva
+  const horas = v.horasBase + aprobadas.reduce((n, h) => n + h.horas, 0)
   const junta = s.juntas.find((j) => j.id === v.juntaId)!
-  return { ...v, horas, junta }
+  return { ...v, horas, porRevisar, aprobadas, junta }
 }
 
 /** Sello de avance de cada junta activa. */

@@ -177,7 +177,7 @@ function Ayudas() {
                 <option key={h} value={h}>{h} {h === 1 ? 'hora' : 'horas'}</option>
               ))}
             </select>
-            <small>Quien ayuda suma estas horas de voluntariado y la junta suma +{REGLAS.ayuda} puntos en Solidaridad.</small>
+            <small>Quien ayuda suma estas horas (máximo {REGLAS.topeAyuda} por ayuda) cuando la directiva las revisa, y la junta suma +{REGLAS.ayuda} puntos en Solidaridad.</small>
           </label>
           <button className="btn btn-block">Publicar</button>
         </form>

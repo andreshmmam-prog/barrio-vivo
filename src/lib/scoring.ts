@@ -17,6 +17,7 @@ export const REGLAS = {
   umbralJuvenil: 0.3, // 30% de asistentes de 14 a 29 años
   ayuda: 15,
   umbralRevision: 150,
+  topeAyuda: 4, // horas máximas que certifica una ayuda de Manos Vecinas
 }
 
 export function esVerificada(a: Pick<Actividad, 'fotos' | 'qr'>) {

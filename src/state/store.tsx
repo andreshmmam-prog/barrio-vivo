@@ -3,6 +3,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useState, type ReactNode } from 'react'
 import * as D from '../data/demo'
 import type {
+  Fondo,
+  RegistroHora,
+  ResultadoPostulacion,
   Acuerdo,
   Asamblea,
   Movimiento,
@@ -46,7 +49,9 @@ export interface Estado {
   recuerdos: Recuerdo[]
   movimientos: Movimiento[]
   reservas: Reserva[]
-  postulaciones: string[]
+  postulaciones: Record<string, ResultadoPostulacion>
+  fondos: Fondo[]
+  horas: RegistroHora[]
   encuestas: Record<string, number[]>
   prefs: Prefs
 }
@@ -71,7 +76,9 @@ const inicial = (): Estado => ({
   recuerdos: D.RECUERDOS,
   movimientos: D.MOVIMIENTOS,
   reservas: D.RESERVAS,
-  postulaciones: [],
+  postulaciones: {},
+  fondos: D.FONDOS,
+  horas: D.HORAS,
   encuestas: {},
   prefs: { letraGrande: false, mapudungun: false },
 })
@@ -111,6 +118,11 @@ type Accion =
   | { t: 'acuerdo'; id: string; a: Acuerdo }
   | { t: 'cerrarAsamblea'; id: string }
   | { t: 'postular'; id: string }
+  | { t: 'resultadoFondo'; id: string; r: ResultadoPostulacion }
+  | { t: 'nuevoFondo'; f: Fondo }
+  | { t: 'revisarFondo'; id: string }
+  | { t: 'revisarHora'; ids: string[]; ok: boolean }
+  | { t: 'autorizarHora'; id: string }
   | { t: 'encuesta'; vecinoId: string; r: number[] }
   | { t: 'nuevoRecuerdo'; r: Recuerdo }
   | { t: 'nuevoMovimiento'; m: Movimiento }
@@ -118,10 +130,6 @@ type Accion =
   | { t: 'decidirReserva'; id: string; ok: boolean }
   | { t: 'prefs'; p: Partial<Prefs> }
   | { t: 'reset' }
-
-function sumarHoras(h: Record<string, number>, id: string | undefined, n: number) {
-  return id ? { ...h, [id]: (h[id] ?? 0) + n } : h
-}
 
 function reducer(s: Estado, a: Accion): Estado {
   switch (a.t) {
@@ -203,10 +211,17 @@ function reducer(s: Estado, a: Accion): Estado {
       if (!ay || ay.estado === 'cumplida') return s
       // Las horas son para quien ayudó: el que respondió (si se pidió) o el autor (si se ofreció)
       const quien = ay.tipo === 'pide' ? ay.conId : ay.autorId
+      const nombre = ay.tipo === 'pide' ? ay.con : ay.autor
+      const v = D.VECINOS.find((x) => x.id === quien)
+      const registro: RegistroHora = {
+        id: `h${Date.now()}`, juntaId: ay.juntaId, vecinoId: quien, persona: nombre ?? 'Vecino', tramo: v?.tramo ?? ay.autorTramo, fecha: D.HOY,
+        origen: 'ayuda', detalle: ay.titulo, con: ay.tipo === 'pide' ? ay.autor : ay.con, horas: Math.min(REGLAS.topeAyuda, ay.horas), estado: 'por_revisar',
+        autorizacion: v?.tramo === '14-17' ? false : undefined,
+      }
       return {
         ...s,
         ayudas: s.ayudas.map((x) => (x.id === a.id ? { ...x, estado: 'cumplida', gracias: a.gracias } : x)),
-        horasExtra: sumarHoras(s.horasExtra, quien, ay.horas),
+        horas: [...s.horas, registro],
       }
     }
     case 'inscribir':
@@ -224,7 +239,13 @@ function reducer(s: Estado, a: Accion): Estado {
       return {
         ...s,
         convocatorias: s.convocatorias.map((x) => (x.id === a.id ? { ...x, asistieronIds: [...x.asistieronIds, a.vecinoId] } : x)),
-        horasExtra: sumarHoras(s.horasExtra, a.vecinoId, c.horas),
+        horas: [
+          ...s.horas,
+          {
+            id: `h${Date.now()}`, juntaId: c.juntaId, vecinoId: a.vecinoId, persona: D.VECINOS.find((x) => x.id === a.vecinoId)?.corto ?? 'Vecino',
+            tramo: D.VECINOS.find((x) => x.id === a.vecinoId)?.tramo ?? '30-59', fecha: D.HOY, origen: 'convocatoria', detalle: c.titulo, horas: c.horas, estado: 'aprobada',
+          },
+        ],
       }
     }
     case 'nuevaPropuesta':
@@ -284,7 +305,17 @@ function reducer(s: Estado, a: Accion): Estado {
       }
     }
     case 'postular':
-      return s.postulaciones.includes(a.id) ? s : { ...s, postulaciones: [...s.postulaciones, a.id] }
+      return s.postulaciones[a.id] ? s : { ...s, postulaciones: { ...s.postulaciones, [a.id]: 'postulado' } }
+    case 'resultadoFondo':
+      return { ...s, postulaciones: { ...s.postulaciones, [a.id]: a.r } }
+    case 'nuevoFondo':
+      return { ...s, fondos: [...s.fondos, a.f] }
+    case 'revisarFondo':
+      return { ...s, fondos: s.fondos.map((f) => (f.id === a.id ? { ...f, revisado: D.HOY } : f)) }
+    case 'revisarHora':
+      return { ...s, horas: s.horas.map((h) => (a.ids.includes(h.id) ? { ...h, estado: a.ok ? 'aprobada' : 'rechazada' } : h)) }
+    case 'autorizarHora':
+      return { ...s, horas: s.horas.map((h) => (h.id === a.id ? { ...h, autorizacion: true } : h)) }
     case 'encuesta':
       return { ...s, encuestas: { ...s.encuestas, [a.vecinoId]: a.r } }
     case 'nuevoRecuerdo':
@@ -302,7 +333,7 @@ function reducer(s: Estado, a: Accion): Estado {
   }
 }
 
-const CLAVE = 'barrio-vivo-demo-v4'
+const CLAVE = 'barrio-vivo-demo-v5'
 
 function cargar(): Estado {
   try {

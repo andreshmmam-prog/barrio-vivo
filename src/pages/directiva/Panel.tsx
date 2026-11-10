@@ -29,6 +29,7 @@ export default function Panel() {
   const presidencia = junta.directiva.find((c) => c.cargo === 'Presidencia')
 
   const venc = vencimientos(s, junta.id).slice(0, 5)
+  const horasPend = s.horas.filter((h) => h.juntaId === junta.id && h.estado === 'por_revisar')
   const enc = ENCUESTA_JUNTA[junta.id]
   const [aviso, setAviso] = useState(false)
   const [resumen, setResumen] = useState(false)
@@ -114,8 +115,14 @@ export default function Panel() {
           </button>
         </div>
 
-        {(pendientes > 0 || docsAlerta > 0 || propuestas > 0) && (
+        {(pendientes > 0 || docsAlerta > 0 || propuestas > 0 || horasPend.length > 0) && (
           <div className="stack-sm">
+            {horasPend.length > 0 && (
+              <Link to="/directiva/gestion?tab=horas" className="lista-item" style={{ textDecoration: 'none', color: 'inherit' }}>
+                <span className="doc-ico" style={{ background: 'var(--verde-claro)', color: 'var(--verde)' }}><Icon name="reloj" size={20} /></span>
+                <span className="grow small"><b>{horasPend.reduce((n, h) => n + h.horas, 0)} horas de voluntariado</b> por revisar antes de certificarlas.</span>
+              </Link>
+            )}
             {propuestas > 0 && (
               <Link to="/directiva/actividades" className="lista-item" style={{ textDecoration: 'none', color: 'inherit' }}>
                 <span className="doc-ico" style={{ background: 'var(--sol)', color: 'var(--tinta)' }}><Icon name="joven" size={20} /></span>

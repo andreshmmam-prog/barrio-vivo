@@ -1,7 +1,7 @@
 // Gestión de la junta: vencimientos, carpeta de postulación, tesorería y acta.
 import { AREA_BY_ID } from '../data/areas'
-import { FONDOS, HOY, PLAZO_RENDICION, SALDO_INICIAL } from '../data/demo'
-import type { Asamblea, Fondo } from '../data/types'
+import { HOY, PLAZO_RENDICION, SALDO_INICIAL } from '../data/demo'
+import type { Asamblea, Documento, Fondo, RegistroHora } from '../data/types'
 import type { Estado } from '../state/store'
 import { diasEntre, esVerificada, fechaLarga } from './scoring'
 
@@ -37,9 +37,10 @@ export function vencimientos(s: Estado, juntaId: string): Vencimiento[] {
     .filter((a) => a.juntaId === juntaId && a.estado !== 'realizada')
     .forEach((a) => add({ titulo: `Asamblea ${a.tipo}`, detalle: `${a.hora} · ${a.lugar}`, fecha: a.fecha, tipo: 'asamblea', to: '/directiva/asambleas' }))
 
-  FONDOS.filter((f) => !s.postulaciones.includes(f.id)).forEach((f) =>
-    add({ titulo: `Cierra: ${f.nombre}`, detalle: f.monto, fecha: f.cierre, tipo: 'fondo', to: '/directiva/gestion' }),
-  )
+  s.fondos.filter((f) => !s.postulaciones[f.id]).forEach((f) => {
+    if (f.apertura && f.apertura > HOY) add({ titulo: `Abre: ${f.nombre}`, detalle: f.fechasEstimadas ? 'Fecha estimada, por confirmar' : f.monto, fecha: f.apertura, tipo: 'fondo', to: '/directiva/gestion' })
+    add({ titulo: `Cierra: ${f.nombre}`, detalle: f.fechasEstimadas ? 'Fecha estimada, por confirmar' : f.monto, fecha: f.cierre, tipo: 'fondo', to: '/directiva/gestion' })
+  })
 
   return lista.filter((v) => v.dias >= 0).sort((a, b) => a.fecha.localeCompare(b.fecha))
 }
@@ -50,57 +51,69 @@ export interface Requisito {
   detalle: string
 }
 
+/** Revisa un certificado: que exista, que no venza antes del cierre y que no sea más antiguo de lo que piden las bases. */
+function certificado(doc: Documento | undefined, fondo: Fondo): { ok: boolean; detalle: string } {
+  if (!doc || doc.estado === 'pendiente') return { ok: false, detalle: 'Falta subirlo' }
+  if (doc.vence && doc.vence < fondo.cierre) return { ok: false, detalle: `Vence el ${fechaLarga(doc.vence)}, antes del cierre: pide uno nuevo` }
+  if (fondo.antiguedadMax && doc.emitido) {
+    const referencia = fondo.apertura ?? HOY
+    const dias = diasEntre(doc.emitido, referencia)
+    if (dias > fondo.antiguedadMax)
+      return { ok: false, detalle: `Emitido el ${fechaLarga(doc.emitido)}. Las bases piden máximo ${Math.round(fondo.antiguedadMax / 30)} meses de antigüedad: pide uno nuevo cerca de la apertura` }
+    return { ok: true, detalle: `Emitido el ${fechaLarga(doc.emitido)}, dentro del plazo que piden las bases` }
+  }
+  return { ok: true, detalle: 'Vigente' }
+}
+
 /** Carpeta de postulación armada con lo que la junta ya tiene en la app. */
 export function carpeta(s: Estado, juntaId: string, fondo: Fondo) {
   const docs = s.documentos.filter((d) => d.juntaId === juntaId)
-  const cert = docs.find((d) => d.tipo === 'Certificado de vigencia')
-  const rendicion = docs.find((d) => d.tipo.startsWith('Rendición'))
+  const doc = (tipo: string) => docs.find((d) => d.tipo.startsWith(tipo))
+  const tiene = (tipo: string, falta: string) => {
+    const d = doc(tipo)
+    return d && d.estado !== 'pendiente' ? { ok: true, detalle: 'En Documentos' } : { ok: false, detalle: falta }
+  }
   const actas = s.asambleas.filter((a) => a.juntaId === juntaId && a.estado === 'realizada')
   const necesidades = s.necesidades.filter((n) => n.juntaId === juntaId && fondo.areas.includes(n.area)).sort((a, b) => b.apoyos - a.apoyos)
   const actividades = s.actividades.filter((a) => a.juntaId === juntaId && a.estado === 'aprobada' && esVerificada(a))
   const enArea = actividades.filter((a) => fondo.areas.includes(a.area))
   const fotos = enArea.reduce((n, a) => n + a.fotos, 0)
   const junta = s.juntas.find((j) => j.id === juntaId)!
+  const rendicion = doc('Rendición')
 
-  const req: Record<string, Requisito> = {
-    'Certificado de vigencia': {
-      texto: 'Certificado de vigencia',
-      ok: !!cert && cert.estado !== 'pendiente' && (!cert.vence || cert.vence >= fondo.cierre),
-      detalle: !cert || cert.estado === 'pendiente' ? 'Falta subirlo' : cert.vence && cert.vence < fondo.cierre ? `Vence el ${fechaLarga(cert.vence)}, antes del cierre: renuévalo` : 'Vigente',
-    },
-    'Rendiciones anteriores al día': {
-      texto: 'Rendiciones anteriores al día',
-      ok: !!rendicion && rendicion.estado !== 'pendiente',
-      detalle: rendicion && rendicion.estado !== 'pendiente' ? 'Al día' : 'Falta la rendición del fondo 2025',
-    },
-    'Acta de asamblea que respalda el proyecto': {
-      texto: 'Acta de asamblea que respalda el proyecto',
-      ok: actas.length > 0,
-      detalle: actas.length ? `Última acta: ${fechaLarga(actas[actas.length - 1].fecha)}` : 'Aprueba el proyecto en la próxima asamblea',
-    },
-    'Necesidad votada por los vecinos': {
-      texto: 'Necesidad votada por los vecinos',
-      ok: necesidades.length > 0,
-      detalle: necesidades.length ? `"${necesidades[0].titulo}" con ${necesidades[0].apoyos} apoyos` : 'Ninguna necesidad en estas áreas',
-    },
-    'Fotos del lugar': {
-      texto: 'Fotos del lugar',
-      ok: necesidades.some((n) => n.punto),
-      detalle: necesidades.some((n) => n.punto) ? 'Ubicadas en el mapa del barrio' : 'Agrega fotos a la necesidad',
-    },
-    'Actividades anteriores con fotos': {
-      texto: 'Actividades anteriores con fotos',
-      ok: enArea.length > 0,
-      detalle: enArea.length ? `${enArea.length} actividades verificadas en ${fondo.areas.map((a) => AREA_BY_ID[a].corto.toLowerCase()).join(' y ')}, ${fotos} fotos` : 'Aún no hay actividades en estas áreas',
-    },
-    'Socios activos': {
-      texto: 'Socios activos',
-      ok: junta.sociosActivos > 0,
-      detalle: `${junta.sociosActivos} de ${junta.socios} socios participan`,
-    },
+  const req: Record<Fondo['requisitos'][number], { ok: boolean; detalle: string }> = {
+    'Certificado de vigencia': certificado(doc('Certificado de vigencia'), fondo),
+    'Certificado de directorio': certificado(doc('Certificado de directorio'), fondo),
+    'Estatutos certificados': tiene('Estatutos', 'Sube los estatutos certificados (no se aceptan archivos editables)'),
+    'RUT de la organización': tiene('RUT', 'Sube el RUT de la organización'),
+    'Inscripción como organización de interés público': tiene('Organización de interés público', 'Falta inscribirse en el catastro; se pide antes del cierre'),
+    'Registro de receptores de fondos públicos (Ley 19.862)': tiene('Registro de receptores', 'Inscríbete en el registro de la Ley 19.862'),
+    'Rendiciones anteriores al día': rendicion && rendicion.estado !== 'pendiente' ? { ok: true, detalle: 'Al día' } : { ok: false, detalle: 'Falta la rendición del fondo 2025' },
+    'Acta de asamblea que respalda el proyecto': actas.length
+      ? { ok: true, detalle: `Última acta: ${fechaLarga(actas[actas.length - 1].fecha)}` }
+      : { ok: false, detalle: 'Aprueba el proyecto en la próxima asamblea' },
+    'Necesidad votada por los vecinos': necesidades.length
+      ? { ok: true, detalle: `"${necesidades[0].titulo}" con ${necesidades[0].apoyos} apoyos` }
+      : { ok: false, detalle: 'Ninguna necesidad en estas áreas' },
+    'Fotos del lugar': necesidades.some((n) => n.punto) ? { ok: true, detalle: 'Ubicadas en el mapa del barrio' } : { ok: false, detalle: 'Agrega fotos a la necesidad' },
+    'Actividades anteriores con fotos': enArea.length
+      ? { ok: true, detalle: `${enArea.length} actividades verificadas en ${fondo.areas.length > 3 ? 'distintas áreas' : fondo.areas.map((a) => AREA_BY_ID[a].corto.toLowerCase()).join(' y ')}, ${fotos} fotos` }
+      : { ok: false, detalle: 'Aún no hay actividades en estas áreas' },
+    'Socios activos': { ok: junta.sociosActivos > 0, detalle: `${junta.sociosActivos} de ${junta.socios} socios participan` },
   }
-  const lista = fondo.requisitos.map((r) => req[r] ?? { texto: r, ok: false, detalle: 'Por revisar' })
+  const lista = fondo.requisitos.map((r) => ({ texto: r, ...req[r] }))
   return { lista, listos: lista.filter((r) => r.ok).length, necesidades, actividades: enArea }
+}
+
+/** Alertas para revisar las horas antes de certificarlas. */
+export function alertasHora(h: RegistroHora, todas: RegistroHora[]): string[] {
+  const a: string[] = []
+  if (h.tramo === '14-17' && !h.autorizacion) a.push('Menor de 18: falta registrar la autorización del apoderado')
+  if (h.origen === 'ayuda' && h.con) {
+    const mismas = todas.filter((x) => x.origen === 'ayuda' && x.persona === h.persona && x.con === h.con && x.estado !== 'rechazada' && Math.abs(diasEntre(x.fecha, h.fecha)) <= 30)
+    if (mismas.length >= 3) a.push(`${mismas.length} ayudas a la misma persona en 30 días: confirma con ${h.con}`)
+  }
+  return a
 }
 
 /** Saldo y totales del año para la tesorería transparente. */

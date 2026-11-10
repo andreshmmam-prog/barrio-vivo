@@ -5,6 +5,7 @@ import VecinoApp from './pages/vecino/VecinoApp'
 import DirectivaApp from './pages/directiva/DirectivaApp'
 import AdminApp from './pages/admin/AdminApp'
 import MunicipioApp from './pages/municipio/MunicipioApp'
+import Verificar from './pages/Verificar'
 
 function ScrollArriba() {
   const { pathname } = useLocation()
@@ -24,6 +25,8 @@ export default function App() {
         <Route path="/directiva/*" element={<DirectivaApp />} />
         <Route path="/admin/*" element={<AdminApp />} />
         <Route path="/municipio/*" element={<MunicipioApp />} />
+        <Route path="/verificar" element={<Verificar />} />
+        <Route path="/verificar/:codigo" element={<Verificar />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>

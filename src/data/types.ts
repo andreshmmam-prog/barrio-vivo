@@ -113,6 +113,7 @@ export interface Documento {
   detalle: string
   estado: 'vigente' | 'por_vencer' | 'al_dia' | 'pendiente'
   vence?: string
+  emitido?: string // fecha de emisión (los fondos piden antigüedad máxima)
   archivo?: string
 }
 
@@ -271,15 +272,57 @@ export interface Asamblea {
   confirmados: number
 }
 
-/** Fondo concursable al que una junta puede postular */
+/** Requisitos estándar en que se traducen las bases de cada fondo */
+export type Requisito =
+  | 'Certificado de vigencia'
+  | 'Certificado de directorio'
+  | 'Estatutos certificados'
+  | 'RUT de la organización'
+  | 'Inscripción como organización de interés público'
+  | 'Registro de receptores de fondos públicos (Ley 19.862)'
+  | 'Rendiciones anteriores al día'
+  | 'Acta de asamblea que respalda el proyecto'
+  | 'Necesidad votada por los vecinos'
+  | 'Fotos del lugar'
+  | 'Actividades anteriores con fotos'
+  | 'Socios activos'
+
+/** Fondo concursable. Lo carga el municipio (sus fondos) o el equipo de Barrio Vivo, desde las bases oficiales. */
 export interface Fondo {
   id: string
   nombre: string
   fuente: string
   monto: string
+  apertura?: string
   cierre: string
+  fechasEstimadas?: boolean // fechas proyectadas desde la convocatoria anterior, por confirmar
   areas: import('./areas').AreaId[]
-  requisitos: string[]
+  quienes: string // quién puede postular, según las bases
+  requisitos: Requisito[]
+  antiguedadMax?: number // días máximos de antigüedad de los certificados al abrir la postulación
+  bases?: string // enlace a las bases oficiales
+  portal?: string // dónde se postula
+  revisado: string // última vez que alguien comparó la ficha con las bases
+  cargadoPor: 'municipio' | 'barrio-vivo'
+  ejemplo?: boolean
+}
+
+export type ResultadoPostulacion = 'postulado' | 'adjudicado' | 'no_adjudicado'
+
+/** Horas de voluntariado: se registran, la directiva las revisa y la junta las certifica. */
+export interface RegistroHora {
+  id: string
+  juntaId: string
+  vecinoId?: string
+  persona: string
+  tramo: Tramo
+  fecha: string
+  origen: 'convocatoria' | 'ayuda' | 'actividad' | 'embajador'
+  detalle: string
+  horas: number
+  con?: string // en Manos Vecinas: a quién se ayudó
+  estado: 'por_revisar' | 'aprobada' | 'rechazada'
+  autorizacion?: boolean // 14 a 17 años: autorización del apoderado registrada
 }
 
 /** Memoria del barrio: fotos antiguas, relatos y entrevistas */

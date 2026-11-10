@@ -3,6 +3,7 @@ import type { AreaId } from './areas'
 import type {
   Asamblea,
   Fondo,
+  RegistroHora,
   Movimiento,
   Recuerdo,
   Reserva,
@@ -305,11 +306,14 @@ export const CONSULTAS: Consulta[] = [
 
 const DOC_BASE: Omit<Documento, 'id' | 'juntaId'>[] = [
   { tipo: 'Estatutos', detalle: 'PDF · versión vigente', estado: 'vigente', archivo: 'estatutos.pdf' },
-  { tipo: 'Certificado de vigencia', detalle: 'Directiva y personalidad jurídica', estado: 'por_vencer', vence: '2026-11-24', archivo: 'certificado-vigencia.pdf' },
+  { tipo: 'Certificado de vigencia', detalle: 'Registro Civil · personalidad jurídica', estado: 'por_vencer', vence: '2026-11-24', emitido: '2026-05-24', archivo: 'certificado-vigencia.pdf' },
   { tipo: 'Actas de asamblea', detalle: '12 actas · incluye las consultas de la app', estado: 'al_dia', archivo: 'actas-2026.pdf' },
   { tipo: 'Libro de socios', detalle: 'Se actualiza solo con el padrón', estado: 'al_dia', archivo: 'libro-socios.pdf' },
   { tipo: 'RUT de la organización', detalle: 'Servicio de Impuestos Internos', estado: 'vigente', archivo: 'rut.pdf' },
   { tipo: 'Rendición fondo 2025', detalle: 'Falta subir', estado: 'pendiente' },
+  { tipo: 'Certificado de directorio', detalle: 'Registro Civil · acredita a la directiva', estado: 'vigente', emitido: '2026-04-20', archivo: 'certificado-directorio.pdf' },
+  { tipo: 'Registro de receptores de fondos públicos', detalle: 'Ley 19.862 · necesario para recibir fondos del Estado', estado: 'vigente', archivo: 'registro-19862.pdf' },
+  { tipo: 'Organización de interés público', detalle: 'Catastro del Ministerio Secretaría General de Gobierno', estado: 'vigente', archivo: 'catastro-oip.pdf' },
 ]
 
 export const DOCUMENTOS: Documento[] = JUNTAS.flatMap((j, ji) =>
@@ -318,6 +322,8 @@ export const DOCUMENTOS: Documento[] = JUNTAS.flatMap((j, ji) =>
     if (j.estado !== 'activa' && di > 1) estado = 'pendiente'
     if (ji % 3 === 1 && di === 1) estado = 'vigente'
     if (ji % 4 === 2 && di === 5) estado = 'al_dia'
+    if (di > 5) estado = j.estado === 'activa' ? 'vigente' : 'pendiente'
+    if (j.id === 'aromos' && di === 8) estado = 'pendiente'
     return { ...d, estado, archivo: estado === 'pendiente' ? undefined : d.archivo, id: `${j.id}-d${di}`, juntaId: j.id }
   }),
 )
@@ -471,29 +477,73 @@ export const ASAMBLEAS: Asamblea[] = [
   },
 ]
 
-// ---- Fondos concursables (ejemplos: nombres, montos y fechas se ajustan a cada comuna) ----
+// ---- Fondos concursables ----------------------------------------------------------
+// FFOIP es un fondo real: datos de su ficha en ChileAtiende (convocatoria 2026). Las fechas 2027 son estimadas.
+// Los demás son ejemplos: en el piloto los carga el municipio o el equipo de Barrio Vivo desde las bases oficiales.
 
 export const FONDOS: Fondo[] = [
   {
-    id: 'f1', nombre: 'Fondo de Desarrollo Vecinal', fuente: 'Municipalidad', monto: 'Hasta $1.500.000', cierre: '2026-11-28',
+    id: 'ffoip', nombre: 'Fondo de Fortalecimiento de Organizaciones de Interés Público (FFOIP)', fuente: 'Ministerio Secretaría General de Gobierno',
+    monto: 'Hasta $2.500.000 (proyecto local)', apertura: '2027-03-01', cierre: '2027-04-23', fechasEstimadas: true,
+    areas: ['social', 'cultura', 'mejora', 'salud', 'ambiente', 'seguridad', 'deporte'],
+    quienes: 'Juntas de vecinos y organizaciones de la Ley 19.418 sin fines de lucro, inscritas como organizaciones de interés público',
+    requisitos: ['Inscripción como organización de interés público', 'Certificado de vigencia', 'Certificado de directorio', 'Estatutos certificados', 'RUT de la organización', 'Necesidad votada por los vecinos'],
+    antiguedadMax: 180,
+    bases: 'https://www.chileatiende.gob.cl/fichas/54963-fondo-de-fortalecimiento-de-organizaciones-de-interes-publico-ffoip',
+    portal: 'https://portal.fondos.gob.cl',
+    revisado: '2026-11-07', cargadoPor: 'barrio-vivo',
+  },
+  {
+    id: 'f1', nombre: 'Fondo de Desarrollo Vecinal', fuente: 'Municipalidad', monto: 'Hasta $1.500.000', apertura: '2026-11-02', cierre: '2026-11-28',
     areas: ['mejora', 'social', 'seguridad'],
-    requisitos: ['Certificado de vigencia', 'Rendiciones anteriores al día', 'Acta de asamblea que respalda el proyecto', 'Necesidad votada por los vecinos', 'Fotos del lugar'],
+    quienes: 'Juntas de vecinos de la comuna con personalidad jurídica vigente y rendiciones al día',
+    requisitos: ['Certificado de vigencia', 'Registro de receptores de fondos públicos (Ley 19.862)', 'Rendiciones anteriores al día', 'Acta de asamblea que respalda el proyecto', 'Necesidad votada por los vecinos', 'Fotos del lugar'],
+    antiguedadMax: 90, portal: 'Oficina de Organizaciones Comunitarias', revisado: '2026-11-02', cargadoPor: 'municipio', ejemplo: true,
   },
   {
-    id: 'f2', nombre: 'Fondo regional de cultura y deporte', fuente: 'Gobierno Regional', monto: 'Hasta $3.000.000', cierre: '2026-12-18',
+    id: 'f2', nombre: 'Fondo regional de cultura y deporte', fuente: 'Gobierno Regional', monto: 'Hasta $3.000.000', apertura: '2026-11-16', cierre: '2026-12-18',
     areas: ['cultura', 'deporte'],
-    requisitos: ['Certificado de vigencia', 'Rendiciones anteriores al día', 'Actividades anteriores con fotos', 'Socios activos', 'Acta de asamblea que respalda el proyecto'],
+    quienes: 'Organizaciones comunitarias de la región inscritas en el registro de receptores de fondos públicos',
+    requisitos: ['Certificado de vigencia', 'Registro de receptores de fondos públicos (Ley 19.862)', 'Rendiciones anteriores al día', 'Actividades anteriores con fotos', 'Socios activos', 'Acta de asamblea que respalda el proyecto'],
+    antiguedadMax: 60, revisado: '2026-10-28', cargadoPor: 'barrio-vivo', ejemplo: true,
   },
   {
-    id: 'f3', nombre: 'Fondo de seguridad vecinal', fuente: 'Programa nacional', monto: 'Hasta $5.000.000', cierre: '2027-01-15',
+    id: 'f3', nombre: 'Fondo de seguridad vecinal', fuente: 'Programa nacional', monto: 'Hasta $5.000.000', apertura: '2026-12-01', cierre: '2027-01-15',
     areas: ['seguridad'],
-    requisitos: ['Certificado de vigencia', 'Necesidad votada por los vecinos', 'Actividades anteriores con fotos', 'Acta de asamblea que respalda el proyecto'],
+    quienes: 'Juntas de vecinos y organizaciones funcionales con personalidad jurídica vigente',
+    requisitos: ['Certificado de vigencia', 'Certificado de directorio', 'Necesidad votada por los vecinos', 'Actividades anteriores con fotos', 'Acta de asamblea que respalda el proyecto'],
+    antiguedadMax: 90, revisado: '2026-10-15', cargadoPor: 'barrio-vivo', ejemplo: true,
   },
   {
     id: 'f4', nombre: 'Fondo de fundaciones para barrios sustentables', fuente: 'Fundación privada', monto: 'Hasta $2.000.000', cierre: '2027-02-10',
     areas: ['ambiente', 'salud'],
+    quienes: 'Organizaciones sin fines de lucro con al menos un año de antigüedad',
     requisitos: ['Certificado de vigencia', 'Actividades anteriores con fotos', 'Socios activos'],
+    revisado: '2026-09-30', cargadoPor: 'barrio-vivo', ejemplo: true,
   },
+]
+
+/** Requisitos estándar disponibles al cargar un fondo */
+export const REQUISITOS: Fondo['requisitos'] = [
+  'Certificado de vigencia', 'Certificado de directorio', 'Estatutos certificados', 'RUT de la organización',
+  'Inscripción como organización de interés público', 'Registro de receptores de fondos públicos (Ley 19.862)',
+  'Rendiciones anteriores al día', 'Acta de asamblea que respalda el proyecto', 'Necesidad votada por los vecinos',
+  'Fotos del lugar', 'Actividades anteriores con fotos', 'Socios activos',
+]
+
+/** Convenio para que el municipio co-firme los certificados de voluntariado (ejemplo) */
+export const CONVENIO_CERTIFICADO = { activo: true, unidad: 'DIDECO · Oficina de la Juventud', comuna: 'Municipalidad de Comuna Demo' }
+
+// ---- Horas de voluntariado por revisar (la directiva las aprueba cada mes) ----------
+
+export const HORAS: RegistroHora[] = [
+  { id: 'h1', juntaId: 'aromos', vecinoId: 'javiera', persona: 'Javiera T.', tramo: '18-29', fecha: '2026-11-04', origen: 'ayuda', detalle: 'Tareas de matemáticas para niños de la villa', con: 'Familias de la villa', horas: 2, estado: 'por_revisar' },
+  { id: 'h2', juntaId: 'aromos', vecinoId: 'javiera', persona: 'Javiera T.', tramo: '18-29', fecha: '2026-11-06', origen: 'embajador', detalle: 'Enseñó a usar la app a 3 vecinos mayores', horas: 2, estado: 'por_revisar' },
+  { id: 'h3', juntaId: 'aromos', persona: 'Luis A.', tramo: '30-59', fecha: '2026-11-01', origen: 'ayuda', detalle: 'Arreglo en la casa', con: 'Don Segundo H.', horas: 4, estado: 'por_revisar' },
+  { id: 'h4', juntaId: 'aromos', persona: 'Luis A.', tramo: '30-59', fecha: '2026-11-03', origen: 'ayuda', detalle: 'Arreglo en la casa', con: 'Don Segundo H.', horas: 4, estado: 'por_revisar' },
+  { id: 'h5', juntaId: 'aromos', persona: 'Luis A.', tramo: '30-59', fecha: '2026-11-05', origen: 'ayuda', detalle: 'Arreglo en la casa', con: 'Don Segundo H.', horas: 4, estado: 'por_revisar' },
+  { id: 'h6', juntaId: 'aromos', persona: 'Benjamín O.', tramo: '14-17', fecha: '2026-11-02', origen: 'convocatoria', detalle: 'Limpieza de la plaza', horas: 3, estado: 'por_revisar', autorizacion: false },
+  { id: 'h7', juntaId: 'aromos', persona: 'Carmen R.', tramo: '30-59', fecha: '2026-11-05', origen: 'ayuda', detalle: 'Cuidó la casa de una vecina', con: 'Patricia S.', horas: 2, estado: 'por_revisar' },
 ]
 
 /** Plazo de ejemplo para entregar la rendición pendiente */
