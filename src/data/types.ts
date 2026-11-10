@@ -87,6 +87,7 @@ export interface Necesidad {
   avance?: number // % de avance de la obra
   fusionadas?: string[] // títulos de necesidades iguales que se sumaron a esta
   origen?: 'app' | 'asamblea'
+  punto?: Punto
 }
 
 export interface Opcion {
@@ -127,6 +128,7 @@ export interface Alerta {
   fecha: string
   autor: string
   comentarios: Comentario[]
+  punto?: Punto
 }
 
 export interface Emprendedor {
@@ -237,4 +239,85 @@ export interface Vecino {
   actividades: number
   membresias: Membresia[]
   embajador?: boolean
+}
+
+/** Punto en el mapa esquemático del barrio (0 a 100 en x, 0 a 70 en y) */
+export interface Punto {
+  x: number
+  y: number
+}
+
+export interface Acuerdo {
+  texto: string
+  favor: number
+  contra: number
+  abstencion: number
+}
+
+/** Asamblea de socios: convocatoria, quórum en vivo, acuerdos y acta */
+export interface Asamblea {
+  id: string
+  juntaId: string
+  tipo: 'ordinaria' | 'extraordinaria'
+  fecha: string
+  hora: string
+  lugar: string
+  tabla: string[]
+  quorum: number // socios necesarios según estatutos
+  estado: 'convocada' | 'en_curso' | 'realizada'
+  asistentes: number
+  acuerdos: Acuerdo[]
+  vanIds: string[] // vecinos que confirmaron
+  confirmados: number
+}
+
+/** Fondo concursable al que una junta puede postular */
+export interface Fondo {
+  id: string
+  nombre: string
+  fuente: string
+  monto: string
+  cierre: string
+  areas: import('./areas').AreaId[]
+  requisitos: string[]
+}
+
+/** Memoria del barrio: fotos antiguas, relatos y entrevistas */
+export interface Recuerdo {
+  id: string
+  juntaId: string
+  titulo: string
+  epoca: string
+  relato: string
+  autor: string
+  tipo: 'foto' | 'relato' | 'entrevista'
+  fecha: string
+}
+
+/** Movimiento de tesorería, visible para los socios */
+export interface Movimiento {
+  id: string
+  juntaId: string
+  fecha: string
+  tipo: 'ingreso' | 'gasto'
+  concepto: string
+  monto: number
+  respaldo: boolean
+}
+
+/** Reserva de la sede o de un bien común */
+export interface Reserva {
+  id: string
+  juntaId: string
+  recurso: string
+  fecha: string
+  bloque: 'Mañana' | 'Tarde' | 'Noche'
+  quien: string
+  motivo: string
+  estado: 'pendiente' | 'confirmada' | 'rechazada'
+}
+
+export interface Prefs {
+  letraGrande: boolean
+  mapudungun: boolean
 }

@@ -1,6 +1,11 @@
 // Datos de ejemplo para el prototipo. Nombres de juntas y personas son ficticios.
 import type { AreaId } from './areas'
 import type {
+  Asamblea,
+  Fondo,
+  Movimiento,
+  Recuerdo,
+  Reserva,
   Actividad,
   Alerta,
   Ayuda,
@@ -274,18 +279,18 @@ export const ACTIVIDADES: Actividad[] = generarActividades()
 // ---- Necesidades -------------------------------------------------------------
 
 export const NECESIDADES: Necesidad[] = [
-  { id: 'n1', juntaId: 'aromos', titulo: 'Pasaje Los Robles sin luz, se siente inseguro', detalle: 'Tres postes sin ampolleta hace dos meses.', area: 'seguridad', apoyos: 58, estado: 'licitacion', ruta: 'proyecto', enviada: '2026-09-18', respuesta: 'Aprobada la reposición de 3 luminarias. Alumbrado Público la está licitando.', actualizada: '2026-10-28', comentarios: [{ autor: 'Jorge M.', texto: 'Anoche además robaron cables del poste de la esquina.', fecha: '2026-11-05' }] },
-  { id: 'n12', juntaId: 'aromos', titulo: 'Postes sin luz en Los Robles', detalle: 'De noche no se ve nada en el pasaje.', area: 'seguridad', apoyos: 9, estado: 'enviada', enviada: '2026-11-02', comentarios: [] },
-  { id: 'n2', juntaId: 'aromos', titulo: 'Microbasural en la esquina del canal', detalle: 'Se acumula basura y escombros cada fin de semana.', area: 'ambiente', apoyos: 34, estado: 'recibida', enviada: '2026-10-12', comentarios: [] },
-  { id: 'n3', juntaId: 'aromos', titulo: 'Techo de la sede con goteras', detalle: 'En invierno no se puede usar el salón.', area: 'mejora', apoyos: 41, estado: 'respondida', enviada: '2026-08-05', respuesta: 'Puede postular al fondo vecinal 2027; Organizaciones Comunitarias apoya la postulación.', actualizada: '2026-09-10', comentarios: [] },
-  { id: 'n4', juntaId: 'esperanza', titulo: 'Iluminación de pasajes del sector sur', detalle: 'Varios pasajes sin luz desde la tormenta.', area: 'seguridad', apoyos: 96, estado: 'enviada', enviada: '2026-09-02', comentarios: [] },
-  { id: 'n5', juntaId: 'esperanza', titulo: 'Operativo de salud para adultos mayores', detalle: 'Muchos adultos mayores no llegan al CESFAM.', area: 'salud', apoyos: 52, estado: 'recibida', enviada: '2026-10-20', comentarios: [] },
-  { id: 'n6', juntaId: 'copihues', titulo: 'Reparar juegos de la plaza', detalle: 'El columpio está roto y es peligroso.', area: 'mejora', apoyos: 47, estado: 'finalizada', ruta: 'proyecto', avance: 100, enviada: '2026-07-14', respuesta: 'Juegos reparados por la cuadrilla municipal.', actualizada: '2026-08-21', comentarios: [] },
-  { id: 'n7', juntaId: 'araucarias', titulo: 'Retiro de microbasural en el sitio eriazo', detalle: 'Hay escombros y riesgo de incendio.', area: 'ambiente', apoyos: 88, estado: 'ejecucion', ruta: 'proyecto', avance: 60, enviada: '2026-08-28', respuesta: 'Aseo y Ornato retira escombros y cierra el sitio.', actualizada: '2026-10-30', comentarios: [] },
-  { id: 'n8', juntaId: 'boldos', titulo: 'Paradero de buses sin techo', detalle: 'Los niños esperan el bus escolar bajo la lluvia.', area: 'mejora', apoyos: 29, estado: 'enviada', enviada: '2026-08-11', comentarios: [] },
-  { id: 'n9', juntaId: 'santarosa', titulo: 'Más rondas preventivas en la noche', detalle: 'Han aumentado los robos en la villa.', area: 'seguridad', apoyos: 71, estado: 'recibida', enviada: '2026-10-05', comentarios: [] },
-  { id: 'n10', juntaId: 'bosque', titulo: 'Taller de salud mental para jóvenes', detalle: 'Los jóvenes no tienen espacios de apoyo.', area: 'salud', apoyos: 38, estado: 'enviada', enviada: '2026-10-25', comentarios: [] },
-  { id: 'n11', juntaId: 'mirador', titulo: 'Contenedores de reciclaje', detalle: 'Queremos separar residuos pero no hay dónde.', area: 'ambiente', apoyos: 44, estado: 'respondida', enviada: '2026-09-01', respuesta: 'Se instalará un punto limpio en el primer semestre 2027.', actualizada: '2026-09-29', comentarios: [] },
+  { id: 'n1', punto: { x: 25, y: 20 }, juntaId: 'aromos', titulo: 'Pasaje Los Robles sin luz, se siente inseguro', detalle: 'Tres postes sin ampolleta hace dos meses.', area: 'seguridad', apoyos: 58, estado: 'licitacion', ruta: 'proyecto', enviada: '2026-09-18', respuesta: 'Aprobada la reposición de 3 luminarias. Alumbrado Público la está licitando.', actualizada: '2026-10-28', comentarios: [{ autor: 'Jorge M.', texto: 'Anoche además robaron cables del poste de la esquina.', fecha: '2026-11-05' }] },
+  { id: 'n12', punto: { x: 34, y: 20 }, juntaId: 'aromos', titulo: 'Postes sin luz en Los Robles', detalle: 'De noche no se ve nada en el pasaje.', area: 'seguridad', apoyos: 9, estado: 'enviada', enviada: '2026-11-02', comentarios: [] },
+  { id: 'n2', punto: { x: 84, y: 60 }, juntaId: 'aromos', titulo: 'Microbasural en la esquina del canal', detalle: 'Se acumula basura y escombros cada fin de semana.', area: 'ambiente', apoyos: 34, estado: 'recibida', enviada: '2026-10-12', comentarios: [] },
+  { id: 'n3', punto: { x: 56, y: 34 }, juntaId: 'aromos', titulo: 'Techo de la sede con goteras', detalle: 'En invierno no se puede usar el salón.', area: 'mejora', apoyos: 41, estado: 'respondida', enviada: '2026-08-05', respuesta: 'Puede postular al fondo vecinal 2027; Organizaciones Comunitarias apoya la postulación.', actualizada: '2026-09-10', comentarios: [] },
+  { id: 'n4', punto: { x: 30, y: 40 }, juntaId: 'esperanza', titulo: 'Iluminación de pasajes del sector sur', detalle: 'Varios pasajes sin luz desde la tormenta.', area: 'seguridad', apoyos: 96, estado: 'enviada', enviada: '2026-09-02', comentarios: [] },
+  { id: 'n5', punto: { x: 60, y: 30 }, juntaId: 'esperanza', titulo: 'Operativo de salud para adultos mayores', detalle: 'Muchos adultos mayores no llegan al CESFAM.', area: 'salud', apoyos: 52, estado: 'recibida', enviada: '2026-10-20', comentarios: [] },
+  { id: 'n6', punto: { x: 22, y: 56 }, juntaId: 'copihues', titulo: 'Reparar juegos de la plaza', detalle: 'El columpio está roto y es peligroso.', area: 'mejora', apoyos: 47, estado: 'finalizada', ruta: 'proyecto', avance: 100, enviada: '2026-07-14', respuesta: 'Juegos reparados por la cuadrilla municipal.', actualizada: '2026-08-21', comentarios: [] },
+  { id: 'n7', punto: { x: 70, y: 50 }, juntaId: 'araucarias', titulo: 'Retiro de microbasural en el sitio eriazo', detalle: 'Hay escombros y riesgo de incendio.', area: 'ambiente', apoyos: 88, estado: 'ejecucion', ruta: 'proyecto', avance: 60, enviada: '2026-08-28', respuesta: 'Aseo y Ornato retira escombros y cierra el sitio.', actualizada: '2026-10-30', comentarios: [] },
+  { id: 'n8', punto: { x: 15, y: 20 }, juntaId: 'boldos', titulo: 'Paradero de buses sin techo', detalle: 'Los niños esperan el bus escolar bajo la lluvia.', area: 'mejora', apoyos: 29, estado: 'enviada', enviada: '2026-08-11', comentarios: [] },
+  { id: 'n9', punto: { x: 50, y: 25 }, juntaId: 'santarosa', titulo: 'Más rondas preventivas en la noche', detalle: 'Han aumentado los robos en la villa.', area: 'seguridad', apoyos: 71, estado: 'recibida', enviada: '2026-10-05', comentarios: [] },
+  { id: 'n10', punto: { x: 40, y: 55 }, juntaId: 'bosque', titulo: 'Taller de salud mental para jóvenes', detalle: 'Los jóvenes no tienen espacios de apoyo.', area: 'salud', apoyos: 38, estado: 'enviada', enviada: '2026-10-25', comentarios: [] },
+  { id: 'n11', punto: { x: 75, y: 35 }, juntaId: 'mirador', titulo: 'Contenedores de reciclaje', detalle: 'Queremos separar residuos pero no hay dónde.', area: 'ambiente', apoyos: 44, estado: 'respondida', enviada: '2026-09-01', respuesta: 'Se instalará un punto limpio en el primer semestre 2027.', actualizada: '2026-09-29', comentarios: [] },
 ]
 
 // ---- Consultas ----------------------------------------------------------------
@@ -321,11 +326,11 @@ export const DOCUMENTOS: Documento[] = JUNTAS.flatMap((j, ji) =>
 
 export const ALERTAS: Alerta[] = [
   { id: 'al1', juntaId: 'aromos', tipo: 'oficial', titulo: 'Asamblea ordinaria de diciembre', texto: 'Responde la consulta para elegir el día. La asamblea revisará el uso del fondo vecinal.', fecha: '2026-11-06', autor: 'Directiva', comentarios: [] },
-  { id: 'al2', juntaId: 'aromos', tipo: 'corte', titulo: 'Corte de agua el jueves 12', texto: 'Entre 9:00 y 14:00 horas en calles Los Robles y Los Maitenes. Guarda agua la noche anterior.', fecha: '2026-11-06', autor: 'Empresa sanitaria · aviso programado', comentarios: [] },
-  { id: 'al3', juntaId: 'aromos', tipo: 'mascota', titulo: 'Se perdió Canela', texto: 'Perrita café, mediana, con collar rojo. Se escapó el martes cerca de la plaza.', fecha: '2026-11-05', autor: 'Carmen R.', comentarios: [{ autor: 'Luis A.', texto: 'La vi esta mañana cerca de la multicancha.', fecha: '2026-11-06' }] },
+  { id: 'al2', punto: { x: 18, y: 45 }, juntaId: 'aromos', tipo: 'corte', titulo: 'Corte de agua el jueves 12', texto: 'Entre 9:00 y 14:00 horas en calles Los Robles y Los Maitenes. Guarda agua la noche anterior.', fecha: '2026-11-06', autor: 'Empresa sanitaria · aviso programado', comentarios: [] },
+  { id: 'al3', punto: { x: 22, y: 56 }, juntaId: 'aromos', tipo: 'mascota', titulo: 'Se perdió Canela', texto: 'Perrita café, mediana, con collar rojo. Se escapó el martes cerca de la plaza.', fecha: '2026-11-05', autor: 'Carmen R.', comentarios: [{ autor: 'Luis A.', texto: 'La vi esta mañana cerca de la multicancha.', fecha: '2026-11-06' }] },
   { id: 'al4', juntaId: 'aromos', tipo: 'operativo', titulo: 'Vacunación contra la influenza en la sede', texto: 'Martes 10, de 10:00 a 13:00 horas. Adultos mayores, embarazadas y enfermos crónicos. Trae tu carnet.', fecha: '2026-11-04', autor: 'CESFAM del sector', comentarios: [] },
-  { id: 'al5', juntaId: 'aromos', tipo: 'seguridad', titulo: 'Infraestructura dañada', texto: 'Pasaje Los Robles · 05 nov, 23:00', fecha: '2026-11-05', autor: 'Jorge M.', comentarios: [] },
-  { id: 'al6', juntaId: 'aromos', tipo: 'transito', titulo: 'Calle Los Maitenes cortada', texto: 'Trabajos de pavimentación hasta el viernes 13. Desvío por Los Robles.', fecha: '2026-11-03', autor: 'Directiva', comentarios: [] },
+  { id: 'al5', punto: { x: 28, y: 20 }, juntaId: 'aromos', tipo: 'seguridad', titulo: 'Infraestructura dañada', texto: 'Pasaje Los Robles · 05 nov, 23:00', fecha: '2026-11-05', autor: 'Jorge M.', comentarios: [] },
+  { id: 'al6', punto: { x: 66, y: 45 }, juntaId: 'aromos', tipo: 'transito', titulo: 'Calle Los Maitenes cortada', texto: 'Trabajos de pavimentación hasta el viernes 13. Desvío por Los Robles.', fecha: '2026-11-03', autor: 'Directiva', comentarios: [] },
   { id: 'al7', juntaId: 'copihues', tipo: 'oficial', titulo: 'Inscripciones para Navidad', texto: 'Inscribe a tus niños hasta el 30 de noviembre con la secretaria.', fecha: '2026-11-02', autor: 'Directiva', comentarios: [] },
 ]
 
@@ -445,4 +450,114 @@ export const SOCIOS: Socio[] = [
   { nombre: 'Benjamín Ortiz', desde: 2024, participaciones: 3, tramo: '14-17' },
   { nombre: 'Teresa Mardones', desde: 2001, participaciones: 1, tramo: '60+' },
   { nombre: 'Andrés Valdebenito', desde: 2023, participaciones: 0, tramo: '18-29' },
+]
+
+// ---- Asambleas y actas -----------------------------------------------------------
+
+export const ASAMBLEAS: Asamblea[] = [
+  {
+    id: 'as1', juntaId: 'aromos', tipo: 'ordinaria', fecha: '2026-09-12', hora: '11:00', lugar: 'Sede vecinal', quorum: 24,
+    estado: 'realizada', asistentes: 37, confirmados: 31, vanIds: [],
+    tabla: ['Cuenta de la directiva', 'Fiesta de la primavera', 'Necesidades para el municipio'],
+    acuerdos: [
+      { texto: 'Celebrar la fiesta de la primavera el 26 de septiembre en la plaza', favor: 33, contra: 1, abstencion: 3 },
+      { texto: 'Enviar al municipio la necesidad de luminarias del pasaje Los Robles', favor: 37, contra: 0, abstencion: 0 },
+    ],
+  },
+  {
+    id: 'as2', juntaId: 'aromos', tipo: 'ordinaria', fecha: '2026-12-05', hora: '10:30', lugar: 'Sede vecinal', quorum: 24,
+    estado: 'convocada', asistentes: 0, confirmados: 19, vanIds: [], acuerdos: [],
+    tabla: ['Cuenta de tesorería', 'Uso del fondo vecinal 2027 (resultado de la consulta)', 'Formar la comisión electoral para marzo', 'Varios'],
+  },
+]
+
+// ---- Fondos concursables (ejemplos: nombres, montos y fechas se ajustan a cada comuna) ----
+
+export const FONDOS: Fondo[] = [
+  {
+    id: 'f1', nombre: 'Fondo de Desarrollo Vecinal', fuente: 'Municipalidad', monto: 'Hasta $1.500.000', cierre: '2026-11-28',
+    areas: ['mejora', 'social', 'seguridad'],
+    requisitos: ['Certificado de vigencia', 'Rendiciones anteriores al día', 'Acta de asamblea que respalda el proyecto', 'Necesidad votada por los vecinos', 'Fotos del lugar'],
+  },
+  {
+    id: 'f2', nombre: 'Fondo regional de cultura y deporte', fuente: 'Gobierno Regional', monto: 'Hasta $3.000.000', cierre: '2026-12-18',
+    areas: ['cultura', 'deporte'],
+    requisitos: ['Certificado de vigencia', 'Rendiciones anteriores al día', 'Actividades anteriores con fotos', 'Socios activos', 'Acta de asamblea que respalda el proyecto'],
+  },
+  {
+    id: 'f3', nombre: 'Fondo de seguridad vecinal', fuente: 'Programa nacional', monto: 'Hasta $5.000.000', cierre: '2027-01-15',
+    areas: ['seguridad'],
+    requisitos: ['Certificado de vigencia', 'Necesidad votada por los vecinos', 'Actividades anteriores con fotos', 'Acta de asamblea que respalda el proyecto'],
+  },
+  {
+    id: 'f4', nombre: 'Fondo de fundaciones para barrios sustentables', fuente: 'Fundación privada', monto: 'Hasta $2.000.000', cierre: '2027-02-10',
+    areas: ['ambiente', 'salud'],
+    requisitos: ['Certificado de vigencia', 'Actividades anteriores con fotos', 'Socios activos'],
+  },
+]
+
+/** Plazo de ejemplo para entregar la rendición pendiente */
+export const PLAZO_RENDICION = '2026-11-30'
+
+// ---- Encuesta anual de barrio (escala 1 a 5) ---------------------------------------
+
+export const ENCUESTA = {
+  nombre: 'Encuesta de barrio 2026',
+  cierre: '2026-12-15',
+  preguntas: [
+    { id: 'seguridad', texto: '¿Te sientes seguro caminando por tu barrio de noche?', corto: 'Seguridad' },
+    { id: 'conoce', texto: '¿Conoces a tus vecinos por su nombre?', corto: 'Conoce a sus vecinos' },
+    { id: 'confianza', texto: '¿Confías en tu junta de vecinos?', corto: 'Confianza en la junta' },
+    { id: 'influye', texto: '¿Sientes que puedes influir en lo que pasa en tu barrio?', corto: 'Puede influir' },
+    { id: 'orgullo', texto: '¿Te sientes orgulloso de tu barrio?', corto: 'Orgullo de barrio' },
+  ],
+  escala: ['Nada', 'Poco', 'Más o menos', 'Bastante', 'Mucho'],
+}
+
+/** Promedios por sector y año (ejemplo). El orden sigue a ENCUESTA.preguntas. */
+export const ENCUESTA_SECTOR: Record<string, { y2025: number[]; y2026: number[]; respuestas: number }> = {
+  norte: { y2025: [2.9, 3.1, 3.0, 2.6, 3.4], y2026: [3.1, 3.4, 3.3, 2.9, 3.6], respuestas: 214 },
+  centro: { y2025: [3.0, 3.3, 3.2, 2.8, 3.5], y2026: [3.3, 3.6, 3.6, 3.2, 3.8], respuestas: 268 },
+  sur: { y2025: [2.2, 3.0, 2.6, 2.3, 3.1], y2026: [2.3, 3.1, 2.7, 2.4, 3.1], respuestas: 187 },
+  poniente: { y2025: [3.2, 3.0, 3.1, 2.7, 3.3], y2026: [3.3, 3.2, 3.4, 3.0, 3.5], respuestas: 152 },
+  rural: { y2025: [3.8, 4.4, 3.4, 2.9, 4.1], y2026: [3.8, 4.4, 3.3, 2.8, 4.1], respuestas: 96 },
+}
+
+/** Resultado de la junta de la directiva (ejemplo) */
+export const ENCUESTA_JUNTA: Record<string, { y2025: number[]; y2026: number[]; respuestas: number }> = {
+  aromos: { y2025: [2.8, 3.2, 3.1, 2.7, 3.4], y2026: [3.2, 3.7, 3.6, 3.3, 3.9], respuestas: 54 },
+}
+
+// ---- Memoria del barrio ----------------------------------------------------------
+
+export const RECUERDOS: Recuerdo[] = [
+  { id: 'r1', juntaId: 'aromos', tipo: 'relato', titulo: 'Cuando llegamos a la villa', epoca: '1987', autor: 'Don Segundo H.', fecha: '2026-08-14', relato: 'Éramos 40 familias y no había pavimento. Los sábados hacíamos minga para poner las soleras.' },
+  { id: 'r2', juntaId: 'aromos', tipo: 'foto', titulo: 'La primera sede, de madera', epoca: '1990', autor: 'Rosa C.', fecha: '2026-09-02', relato: 'La levantamos entre todos con madera donada por el aserradero.' },
+  { id: 'r3', juntaId: 'aromos', tipo: 'entrevista', titulo: 'Cómo llegó el agua potable', epoca: '1993', autor: 'Javiera T. entrevistó a Teresa M.', fecha: '2026-10-21', relato: 'Antes íbamos con baldes al pilón de la esquina. La junta juntó firmas durante un año.' },
+  { id: 'r4', juntaId: 'aromos', tipo: 'foto', titulo: 'Fiesta de la primavera en la plaza', epoca: '1995', autor: 'Carmen R.', fecha: '2026-10-30', relato: 'Coronamos reina a la señora Elba y bailamos cueca hasta la noche.' },
+]
+
+// ---- Tesorería -------------------------------------------------------------------
+
+export const MOVIMIENTOS: Movimiento[] = [
+  { id: 't1', juntaId: 'aromos', fecha: '2026-11-03', tipo: 'ingreso', concepto: 'Cuotas sociales de octubre', monto: 136000, respaldo: true },
+  { id: 't2', juntaId: 'aromos', fecha: '2026-10-28', tipo: 'gasto', concepto: 'Ampolletas y extensión para la sede', monto: 38500, respaldo: true },
+  { id: 't3', juntaId: 'aromos', fecha: '2026-10-15', tipo: 'ingreso', concepto: 'Arriendo de la sede para un cumpleaños', monto: 25000, respaldo: true },
+  { id: 't4', juntaId: 'aromos', fecha: '2026-10-02', tipo: 'gasto', concepto: 'Gas para la fiesta de la primavera', monto: 42000, respaldo: true },
+  { id: 't5', juntaId: 'aromos', fecha: '2026-09-30', tipo: 'ingreso', concepto: 'Cuotas sociales de septiembre', monto: 128000, respaldo: true },
+  { id: 't6', juntaId: 'aromos', fecha: '2026-09-27', tipo: 'gasto', concepto: 'Premios y decoración de la fiesta de la primavera', monto: 64300, respaldo: false },
+]
+
+/** Saldo con que partió el año (ejemplo) */
+export const SALDO_INICIAL: Record<string, number> = { aromos: 412000 }
+
+// ---- Sede y bienes comunes -------------------------------------------------------
+
+export const RECURSOS = ['Salón de la sede', 'Toldo 6 x 3', 'Mesas y 40 sillas', 'Amplificación']
+
+export const RESERVAS: Reserva[] = [
+  { id: 'rs1', juntaId: 'aromos', recurso: 'Salón de la sede', fecha: '2026-11-14', bloque: 'Mañana', quien: 'CESFAM del sector', motivo: 'Operativo de salud', estado: 'confirmada' },
+  { id: 'rs2', juntaId: 'aromos', recurso: 'Salón de la sede', fecha: '2026-11-15', bloque: 'Tarde', quien: 'Carmen R.', motivo: 'Cumpleaños de la Sofi', estado: 'pendiente' },
+  { id: 'rs3', juntaId: 'aromos', recurso: 'Toldo 6 x 3', fecha: '2026-11-21', bloque: 'Mañana', quien: 'Directiva', motivo: 'Limpieza del canal', estado: 'confirmada' },
+  { id: 'rs4', juntaId: 'aromos', recurso: 'Salón de la sede', fecha: '2026-11-17', bloque: 'Noche', quien: 'Club de adulto mayor', motivo: 'Taller de tejido', estado: 'confirmada' },
 ]

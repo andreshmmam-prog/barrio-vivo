@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AREAS, AREA_BY_ID } from '../../data/areas'
-import { EMERGENCIAS, TEMPORADA } from '../../data/demo'
+import { EMERGENCIAS, ENCUESTA, HOY, TEMPORADA } from '../../data/demo'
+import { EncuestaModal } from '../../components/barrio'
 import { Icon } from '../../components/Icon'
 import { AlertaCard, NuevaAlertaModal } from '../../components/comunidad'
 import { AreaChip, Chip, Logo, SelloNivel } from '../../components/ui'
-import { useNiveles, useTabla, useVecino } from '../../lib/hooks'
+import { useMapu, useNiveles, useTabla, useVecino } from '../../lib/hooks'
 import { areaMasDebil, esVerificada, fechaCorta, miles, puntosPorActividad } from '../../lib/scoring'
 import { useStore } from '../../state/store'
 
@@ -26,6 +27,10 @@ export default function Inicio() {
   const nombre = (id?: string) => s.juntas.find((j) => j.id === id)?.nombre
   const [avisar, setAvisar] = useState(false)
   const [verTodas, setVerTodas] = useState(false)
+  const [encuesta, setEncuesta] = useState(false)
+  const m = useMapu()
+  const asamblea = s.asambleas.find((a) => a.juntaId === junta.id && a.estado !== 'realizada')
+  const sinEncuesta = !s.encuestas[v.id] && HOY <= ENCUESTA.cierre
 
   return (
     <>
@@ -39,7 +44,7 @@ export default function Inicio() {
           </Link>
         </div>
         <div>
-          <p className="saludo">Hola, {v.nombre.split(' ')[0]}</p>
+          <p className="saludo">{m.sola('hola', 'Hola')}, {v.nombre.split(' ')[0]}</p>
           <h1>JJVV {junta.nombre}</h1>
         </div>
       </div>
@@ -80,9 +85,9 @@ export default function Inicio() {
             <span><Icon name="manos" /></span>
             <span>Pedir ayuda</span>
           </Link>
-          <Link className="acceso" to="/vecino/participa">
-            <span><Icon name="voto" /></span>
-            <span>Consultas</span>
+          <Link className="acceso" to="/vecino/junta">
+            <span><Icon name="socios" /></span>
+            <span>Mi junta</span>
           </Link>
           <Link className="acceso" to="/vecino/emprendedores">
             <span><Icon name="mercado" /></span>
@@ -105,6 +110,32 @@ export default function Inicio() {
             </div>
             <Icon name="derecha" size={18} />
           </Link>
+        )}
+
+        {asamblea && (
+          <Link to="/vecino/junta" className="lista-item" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <span className="area-icon" style={{ width: 44, height: 44, background: 'var(--tinta)' }}>
+              <Icon name="calendario" size={22} />
+            </span>
+            <div className="grow">
+              <p className="titulo">{m.t('Asamblea', 'asamblea')}: {fechaCorta(asamblea.fecha)}, {asamblea.hora}</p>
+              <p className="small muted">{asamblea.vanIds.includes(v.id) ? 'Confirmaste que vas' : `${asamblea.confirmados} vecinos van · ver la tabla`}</p>
+            </div>
+            <Icon name="derecha" size={18} />
+          </Link>
+        )}
+
+        {sinEncuesta && (
+          <button className="lista-item" onClick={() => setEncuesta(true)} style={{ textAlign: 'left', width: '100%', background: 'var(--verde-claro)', borderColor: 'var(--verde-claro)' }}>
+            <span className="area-icon" style={{ width: 44, height: 44, background: 'var(--verde)' }}>
+              <Icon name="estrella" size={22} />
+            </span>
+            <span className="grow">
+              <span className="titulo" style={{ display: 'block' }}>{ENCUESTA.nombre}</span>
+              <span className="small muted">5 preguntas · anónima · ayuda a medir si el barrio mejora</span>
+            </span>
+            <Icon name="derecha" size={18} />
+          </button>
         )}
 
         {piden > 0 && (
@@ -163,6 +194,7 @@ export default function Inicio() {
         })}
       </div>
 
+      <EncuestaModal open={encuesta} onClose={() => setEncuesta(false)} vecinoId={v.id} />
       <NuevaAlertaModal open={avisar} onClose={() => setAvisar(false)} juntaId={junta.id} autor={v.corto} />
     </>
   )

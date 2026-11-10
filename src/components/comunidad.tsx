@@ -45,6 +45,21 @@ export const TIPOS_ALERTA: Record<TipoAlerta, { label: string; icono: string; co
   emergencia: { label: 'Emergencia', icono: 'alerta', color: '#FFFFFF', fondo: '#B4322A' },
 }
 
+/** Lee un texto en voz alta con la voz en español del teléfono. */
+export function escuchar(texto: string) {
+  try {
+    const synth = window.speechSynthesis
+    if (!synth) return
+    synth.cancel()
+    const u = new SpeechSynthesisUtterance(texto)
+    u.lang = 'es-CL'
+    u.rate = 0.95
+    synth.speak(u)
+  } catch {
+    /* el navegador no permite leer en voz alta */
+  }
+}
+
 export function AlertaCard({ a, autor }: { a: Alerta; autor: string }) {
   const { dispatch } = useStore()
   const [open, setOpen] = useState(false)
@@ -62,9 +77,14 @@ export function AlertaCard({ a, autor }: { a: Alerta; autor: string }) {
           <p className="xs muted" style={{ marginTop: 4 }}>{a.autor}</p>
         </div>
       </div>
-      <button className="link-btn" onClick={() => setOpen(!open)} aria-expanded={open}>
-        <Icon name="comentario" size={16} /> {a.comentarios.length ? `${a.comentarios.length} ${a.comentarios.length === 1 ? 'comentario' : 'comentarios'}` : 'Comentar'}
-      </button>
+      <div className="chips" style={{ gap: 16 }}>
+        <button className="link-btn" onClick={() => setOpen(!open)} aria-expanded={open}>
+          <Icon name="comentario" size={16} /> {a.comentarios.length ? `${a.comentarios.length} ${a.comentarios.length === 1 ? 'comentario' : 'comentarios'}` : 'Comentar'}
+        </button>
+        <button className="link-btn" onClick={() => escuchar(`${t.label}. ${a.titulo}. ${a.texto}`)}>
+          <Icon name="play" size={16} /> Escuchar
+        </button>
+      </div>
       {open && <Comentarios id={a.id} lista={a.comentarios} onEnviar={(texto) => dispatch({ t: 'comentarAlerta', id: a.id, autor, texto })} />}
     </article>
   )

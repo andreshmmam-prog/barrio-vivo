@@ -6,9 +6,10 @@ import { CambiarPerfil, Chip, Modal, PageTitle } from '../../components/ui'
 import { useVecino } from '../../lib/hooks'
 import { fechaLarga } from '../../lib/scoring'
 import { useStore } from '../../state/store'
+import { AVISO_MAPU } from '../../data/mapudungun'
 
 export default function Perfil() {
-  const { s } = useStore()
+  const { s, dispatch } = useStore()
   const v = useVecino()
   const [cert, setCert] = useState(false)
   const respondidas = s.consultas.filter((c) => c.votoDe[v.id] !== undefined).length
@@ -94,6 +95,19 @@ export default function Perfil() {
           <div className="between small"><span>Consultas respondidas</span><b>{respondidas}</b></div>
           <div className="between small"><span>Necesidades que apoyo</span><b>{apoyos}</b></div>
         </div>
+
+        <section className="card stack-sm" aria-labelledby="ver-t">
+          <h2 id="ver-t" className="card-titulo" style={{ fontSize: 17 }}>Cómo ves la app</h2>
+          <label className="ajuste">
+            <span><b>Letra grande</b><small>Todo se ve más grande y fácil de leer</small></span>
+            <input type="checkbox" checked={s.prefs.letraGrande} onChange={(e) => dispatch({ t: 'prefs', p: { letraGrande: e.target.checked } })} />
+          </label>
+          <label className="ajuste">
+            <span><b>Mapudungun</b><small>Saludos y secciones también en mapudungun</small></span>
+            <input type="checkbox" checked={s.prefs.mapudungun} onChange={(e) => dispatch({ t: 'prefs', p: { mapudungun: e.target.checked } })} />
+          </label>
+          <p className="xs muted">Los avisos tienen el botón "Escuchar" para oírlos en voz alta. {s.prefs.mapudungun && AVISO_MAPU}</p>
+        </section>
 
         <Link to="/vecino/aprende" className="lista-item" style={{ textDecoration: 'none', color: 'inherit' }}>
           <span className="area-icon" style={{ width: 44, height: 44, background: 'var(--sol)', color: 'var(--tinta)' }}><Icon name="aprende" size={22} /></span>

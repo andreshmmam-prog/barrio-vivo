@@ -7,6 +7,8 @@ import Tabla from './Tabla'
 import Perfil from './Perfil'
 import Emprendedores from './Emprendedores'
 import Aprende from './Aprende'
+import MiJunta from './MiJunta'
+import { useStore } from '../../state/store'
 
 const NAV = [
   { to: '/vecino', label: 'Inicio', icon: 'inicio', end: true },
@@ -17,8 +19,9 @@ const NAV = [
 ]
 
 export default function VecinoApp() {
+  const { s } = useStore()
   return (
-    <MobileFrame nav={<BottomNav items={NAV} label="Navegación del vecino" />}>
+    <MobileFrame letraGrande={s.prefs.letraGrande} nav={<BottomNav items={NAV} label="Navegación del vecino" />}>
       <Routes>
         <Route index element={<Inicio />} />
         <Route path="manos" element={<Manos />} />
@@ -27,6 +30,7 @@ export default function VecinoApp() {
         <Route path="perfil" element={<Perfil />} />
         <Route path="emprendedores" element={<Emprendedores />} />
         <Route path="aprende" element={<Aprende />} />
+        <Route path="junta" element={<MiJunta />} />
       </Routes>
     </MobileFrame>
   )

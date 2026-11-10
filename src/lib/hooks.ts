@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { MAPU, type ClaveMapu } from '../data/mapudungun'
 import { VECINOS } from '../data/demo'
 import { useStore } from '../state/store'
 import { ivc, nivelJunta, tablaGeneral } from './scoring'
@@ -34,4 +35,15 @@ export function useNiveles() {
     () => new Map(s.juntas.filter((j) => j.estado === 'activa').map((j) => [j.id, nivelJunta(j, s.actividades, s.documentos)])),
     [s.juntas, s.actividades, s.documentos],
   )
+}
+
+/** Modo bilingüe: devuelve "Español · Mapudungun" cuando está activo. */
+export function useMapu() {
+  const { s } = useStore()
+  const on = s.prefs.mapudungun
+  return {
+    on,
+    t: (es: string, clave: ClaveMapu) => (on ? `${es} · ${MAPU[clave]}` : es),
+    sola: (clave: ClaveMapu, es: string) => (on ? MAPU[clave] : es),
+  }
 }

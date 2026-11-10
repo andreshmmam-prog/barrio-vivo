@@ -3,6 +3,8 @@ import { AREAS, AREA_BY_ID, type AreaId } from '../../data/areas'
 import { HOY } from '../../data/demo'
 import { Icon } from '../../components/Icon'
 import { Comentarios } from '../../components/comunidad'
+import { BarrioMapa } from '../../components/barrio'
+import type { Punto } from '../../data/types'
 import { Bar, Chip, Modal, PageTitle, PasosSemaforo, Semaforo, Tabs, cerrada } from '../../components/ui'
 import { useVecino } from '../../lib/hooks'
 import { diasEntre, fechaCorta } from '../../lib/scoring'
@@ -111,6 +113,9 @@ function Necesidades() {
   const [titulo, setTitulo] = useState('')
   const [detalle, setDetalle] = useState('')
   const [area, setArea] = useState<AreaId>('mejora')
+  const [punto, setPunto] = useState<Punto | null>(null)
+  const [modo, setModo] = useState<'lista' | 'mapa'>('lista')
+  const [pin, setPin] = useState<string | null>(null)
   const lista = s.necesidades.filter((n) => n.juntaId === v.juntaId).sort((a, b) => b.apoyos - a.apoyos)
   // Sugerir necesidades parecidas antes de crear una nueva (evita que los apoyos se dispersen)
   const palabras = titulo.toLowerCase().split(/[^a-záéíóúñü]+/).filter((w) => w.length > 3)
@@ -121,7 +126,26 @@ function Necesidades() {
   return (
     <>
       <p className="small muted">Las necesidades con más apoyo se envían al municipio. Aquí ves en qué va cada una y cuántos días lleva esperando.</p>
-      {lista.map((n) => {
+      <div className="chips" role="group" aria-label="Ver como">
+        <button className={`btn btn-chico ${modo === 'lista' ? '' : 'btn-borde'}`} aria-pressed={modo === 'lista'} onClick={() => setModo('lista')}>Lista</button>
+        <button className={`btn btn-chico ${modo === 'mapa' ? '' : 'btn-borde'}`} aria-pressed={modo === 'mapa'} onClick={() => setModo('mapa')}><Icon name="mapa" size={16} /> Mapa</button>
+      </div>
+      {modo === 'mapa' && (() => {
+        const sel = lista.find((n) => n.id === pin) ?? s.alertas.find((a) => a.id === pin)
+        return (
+          <div className="card stack-sm">
+            <BarrioMapa necesidades={lista.filter((n) => !cerrada(n.estado))} alertas={s.alertas.filter((a) => a.juntaId === v.juntaId)} seleccion={pin} onSelect={setPin} />
+            <p className="xs muted">Círculos: necesidades, del color de su área. Rombos amarillos: avisos recientes. Toca uno para verlo.</p>
+            {sel && (
+              <div className="regla">
+                <p className="small bold">{sel.titulo}</p>
+                <p className="xs muted">{'apoyos' in sel ? `${sel.apoyos} apoyos · ${AREA_BY_ID[sel.area].corto}` : `Aviso · ${fechaCorta(sel.fecha)}`}</p>
+              </div>
+            )}
+          </div>
+        )
+      })()}
+      {modo === 'lista' && lista.map((n) => {
         const a = AREA_BY_ID[n.area]
         const dias = diasEntre(n.enviada)
         const open = abierta === n.id
@@ -188,10 +212,11 @@ function Necesidades() {
             if (!titulo.trim()) return
             dispatch({
               t: 'nuevaNecesidad',
-              n: { id: `nn${Date.now()}`, juntaId: v.juntaId, titulo: titulo.trim(), detalle: detalle.trim() || 'Sin detalle', area, apoyos: 1, apoyada: true, estado: 'enviada', enviada: HOY, comentarios: [] },
+              n: { id: `nn${Date.now()}`, juntaId: v.juntaId, titulo: titulo.trim(), detalle: detalle.trim() || 'Sin detalle', area, apoyos: 1, apoyada: true, estado: 'enviada', enviada: HOY, comentarios: [], punto: punto ?? undefined },
             })
             setTitulo('')
             setDetalle('')
+            setPunto(null)
             setNueva(false)
             toast('Necesidad publicada. Invita a tus vecinos a apoyarla')
           }}
@@ -236,6 +261,11 @@ function Necesidades() {
               ))}
             </select>
           </label>
+          <div className="field">
+            <span>¿Dónde? Toca el mapa (opcional)</span>
+            <BarrioMapa onPick={setPunto} marca={punto} />
+            <small>{punto ? 'Lugar marcado. Toca otro punto para cambiarlo.' : 'Marcar el lugar ayuda al municipio a encontrarlo.'}</small>
+          </div>
           <button className="btn btn-block">Publicar necesidad</button>
         </form>
       </Modal>

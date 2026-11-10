@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AREAS } from '../../data/areas'
-import { HOY } from '../../data/demo'
+import { ENCUESTA, ENCUESTA_JUNTA, HOY } from '../../data/demo'
+import { ResultadoEncuesta } from '../../components/barrio'
+import { vencimientos } from '../../lib/gestion'
 import { Icon } from '../../components/Icon'
 import { NuevaAlertaModal } from '../../components/comunidad'
 import { Bar, CambiarPerfil, Chip, Modal, Radar, SelloNivel } from '../../components/ui'
@@ -26,6 +28,8 @@ export default function Panel() {
   const docsAlerta = s.documentos.filter((d) => d.juntaId === junta.id && (d.estado === 'por_vencer' || d.estado === 'pendiente')).length
   const presidencia = junta.directiva.find((c) => c.cargo === 'Presidencia')
 
+  const venc = vencimientos(s, junta.id).slice(0, 5)
+  const enc = ENCUESTA_JUNTA[junta.id]
   const [aviso, setAviso] = useState(false)
   const [resumen, setResumen] = useState(false)
 
@@ -133,6 +137,22 @@ export default function Panel() {
           </div>
         )}
 
+        <section className="card stack-sm" aria-labelledby="venc-t">
+          <h2 id="venc-t" className="card-titulo" style={{ fontSize: 17 }}>Lo que viene</h2>
+          {venc.map((v) => (
+            <Link key={v.titulo + v.fecha} to={v.to ?? '/directiva'} className="vence" style={{ textDecoration: 'none', color: 'inherit' }}>
+              <span className="vence-dias" data-nivel={v.dias <= 15 ? 'alta' : v.dias <= 45 ? 'media' : 'baja'}>
+                <b>{v.dias}</b>{v.dias === 1 ? 'día' : 'días'}
+              </span>
+              <span className="grow">
+                <span className="small bold" style={{ display: 'block' }}>{v.titulo}</span>
+                <span className="xs muted">{fechaCorta(v.fecha)} · {v.detalle}</span>
+              </span>
+              <Icon name="derecha" size={16} />
+            </Link>
+          ))}
+        </section>
+
         {nivel.falta.length > 0 && (
           <div className="card stack-sm" style={{ background: 'var(--verde-claro)', border: 'none' }}>
             <p className="bold small">Para subir al siguiente sello</p>
@@ -140,6 +160,16 @@ export default function Panel() {
               {nivel.falta.map((f) => <li key={f}>{f}</li>)}
             </ul>
           </div>
+        )}
+
+        {enc && (
+          <section className="card stack-sm" aria-labelledby="enc-t">
+            <div className="between">
+              <h2 id="enc-t" className="card-titulo" style={{ fontSize: 17 }}>Encuesta de barrio</h2>
+              <span className="xs muted">{enc.respuestas} respuestas · cierra {fechaCorta(ENCUESTA.cierre)}</span>
+            </div>
+            <ResultadoEncuesta y2025={enc.y2025} y2026={enc.y2026} />
+          </section>
         )}
 
         <section className="card" aria-labelledby="radar-t">

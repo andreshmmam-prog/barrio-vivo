@@ -3,6 +3,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useState, type ReactNode } from 'react'
 import * as D from '../data/demo'
 import type {
+  Acuerdo,
+  Asamblea,
+  Movimiento,
+  Prefs,
+  Recuerdo,
+  Reserva,
   Actividad,
   Alerta,
   Ayuda,
@@ -36,6 +42,13 @@ export interface Estado {
   temporadaCerrada: boolean
   vecinoId: string
   horasExtra: Record<string, number>
+  asambleas: Asamblea[]
+  recuerdos: Recuerdo[]
+  movimientos: Movimiento[]
+  reservas: Reserva[]
+  postulaciones: string[]
+  encuestas: Record<string, number[]>
+  prefs: Prefs
 }
 
 const inicial = (): Estado => ({
@@ -54,6 +67,13 @@ const inicial = (): Estado => ({
   temporadaCerrada: false,
   vecinoId: 'marta',
   horasExtra: {},
+  asambleas: D.ASAMBLEAS,
+  recuerdos: D.RECUERDOS,
+  movimientos: D.MOVIMIENTOS,
+  reservas: D.RESERVAS,
+  postulaciones: [],
+  encuestas: {},
+  prefs: { letraGrande: false, mapudungun: false },
 })
 
 type Accion =
@@ -84,6 +104,19 @@ type Accion =
   | { t: 'estadoJunta'; id: string; estado: Junta['estado'] }
   | { t: 'cerrarTemporada'; cerrada: boolean }
   | { t: 'setVecino'; id: string }
+  | { t: 'nuevaAsamblea'; a: Asamblea }
+  | { t: 'irAsamblea'; id: string; vecinoId: string }
+  | { t: 'iniciarAsamblea'; id: string }
+  | { t: 'asistentesAsamblea'; id: string; n: number }
+  | { t: 'acuerdo'; id: string; a: Acuerdo }
+  | { t: 'cerrarAsamblea'; id: string }
+  | { t: 'postular'; id: string }
+  | { t: 'encuesta'; vecinoId: string; r: number[] }
+  | { t: 'nuevoRecuerdo'; r: Recuerdo }
+  | { t: 'nuevoMovimiento'; m: Movimiento }
+  | { t: 'reservar'; r: Reserva }
+  | { t: 'decidirReserva'; id: string; ok: boolean }
+  | { t: 'prefs'; p: Partial<Prefs> }
   | { t: 'reset' }
 
 function sumarHoras(h: Record<string, number>, id: string | undefined, n: number) {
@@ -219,12 +252,57 @@ function reducer(s: Estado, a: Accion): Estado {
       return { ...s, temporadaCerrada: a.cerrada }
     case 'setVecino':
       return { ...s, vecinoId: a.id }
+    case 'nuevaAsamblea':
+      return { ...s, asambleas: [...s.asambleas, a.a] }
+    case 'irAsamblea':
+      return {
+        ...s,
+        asambleas: s.asambleas.map((x) => {
+          if (x.id !== a.id) return x
+          const va = x.vanIds.includes(a.vecinoId)
+          return { ...x, vanIds: va ? x.vanIds.filter((i) => i !== a.vecinoId) : [...x.vanIds, a.vecinoId], confirmados: x.confirmados + (va ? -1 : 1) }
+        }),
+      }
+    case 'iniciarAsamblea':
+      return { ...s, asambleas: s.asambleas.map((x) => (x.id === a.id ? { ...x, estado: 'en_curso' } : x)) }
+    case 'asistentesAsamblea':
+      return { ...s, asambleas: s.asambleas.map((x) => (x.id === a.id ? { ...x, asistentes: Math.max(0, a.n) } : x)) }
+    case 'acuerdo':
+      return { ...s, asambleas: s.asambleas.map((x) => (x.id === a.id ? { ...x, acuerdos: [...x.acuerdos, a.a] } : x)) }
+    case 'cerrarAsamblea': {
+      const as = s.asambleas.find((x) => x.id === a.id)
+      if (!as) return s
+      const doc = {
+        id: `acta-${as.id}`, juntaId: as.juntaId, tipo: `Acta asamblea ${as.tipo}`,
+        detalle: `${as.fecha.split('-').reverse().join('-')} · ${as.asistentes} socios · ${as.acuerdos.length} acuerdos · generada en la app`,
+        estado: 'al_dia' as const, archivo: `acta-${as.fecha}.pdf`,
+      }
+      return {
+        ...s,
+        asambleas: s.asambleas.map((x) => (x.id === a.id ? { ...x, estado: 'realizada' } : x)),
+        documentos: [doc, ...s.documentos.filter((d) => d.id !== doc.id)],
+      }
+    }
+    case 'postular':
+      return s.postulaciones.includes(a.id) ? s : { ...s, postulaciones: [...s.postulaciones, a.id] }
+    case 'encuesta':
+      return { ...s, encuestas: { ...s.encuestas, [a.vecinoId]: a.r } }
+    case 'nuevoRecuerdo':
+      return { ...s, recuerdos: [a.r, ...s.recuerdos] }
+    case 'nuevoMovimiento':
+      return { ...s, movimientos: [a.m, ...s.movimientos] }
+    case 'reservar':
+      return { ...s, reservas: [...s.reservas, a.r] }
+    case 'decidirReserva':
+      return { ...s, reservas: s.reservas.map((x) => (x.id === a.id ? { ...x, estado: a.ok ? 'confirmada' : 'rechazada' } : x)) }
+    case 'prefs':
+      return { ...s, prefs: { ...s.prefs, ...a.p } }
     case 'reset':
       return inicial()
   }
 }
 
-const CLAVE = 'barrio-vivo-demo-v3'
+const CLAVE = 'barrio-vivo-demo-v4'
 
 function cargar(): Estado {
   try {

@@ -4,7 +4,7 @@ import { HOY, RED_CUIDADOS, TRAMOS, VECINOS, esJoven } from '../../data/demo'
 import type { Ayuda, CategoriaAyuda } from '../../data/types'
 import { Icon } from '../../components/Icon'
 import { AreaChip, Bar, Chip, Empty, Modal, PageTitle, Tabs } from '../../components/ui'
-import { useTabla, useVecino } from '../../lib/hooks'
+import { useMapu, useTabla, useVecino } from '../../lib/hooks'
 import { REGLAS, fechaCorta, pct, rankingJuventud } from '../../lib/scoring'
 import { useStore } from '../../state/store'
 
@@ -20,6 +20,7 @@ export const CATEGORIAS: Record<CategoriaAyuda, string> = {
 type Vista = 'ayudas' | 'voluntariado' | 'jovenes'
 
 export default function Manos() {
+  const m = useMapu()
   const v = useVecino()
   const { s } = useStore()
   const [vista, setVista] = useState<Vista>('ayudas')
@@ -28,7 +29,7 @@ export default function Manos() {
 
   return (
     <>
-      <PageTitle title="Manos Vecinas" sub="Pide y ofrece ayuda. Ayudar suma horas de voluntariado." />
+      <PageTitle title={m.t('Manos Vecinas', 'ayuda')} sub="Pide y ofrece ayuda. Ayudar suma horas de voluntariado." />
       <div className="pad stack" style={{ paddingTop: 6 }}>
         <div className="card between" style={{ background: 'var(--verde)', color: '#fff', border: 'none' }}>
           <div>

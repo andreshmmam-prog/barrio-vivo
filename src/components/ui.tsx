@@ -151,9 +151,9 @@ export function BottomNav({ items, label }: { items: NavItem[]; label: string })
   )
 }
 
-export function MobileFrame({ children, nav }: { children: ReactNode; nav: ReactNode }) {
+export function MobileFrame({ children, nav, letraGrande }: { children: ReactNode; nav: ReactNode; letraGrande?: boolean }) {
   return (
-    <div className="mobile-wrap">
+    <div className={`mobile-wrap${letraGrande ? ' letra-grande' : ''}`}>
       <div className="mobile">
         <div className="mobile-scroll">{children}</div>
         {nav}

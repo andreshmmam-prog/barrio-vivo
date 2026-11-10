@@ -357,6 +357,15 @@ function Reglas() {
           </ul>
         </section>
         <section className="panel">
+          <h2>Gestión y transparencia</h2>
+          <ul className="small" style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <li>Actas: la app las escribe con lo registrado en la asamblea (asistentes, quórum y votación de cada acuerdo); se imprimen para firmar.</li>
+            <li>Tesorería: solo quien ejerce la tesorería registra; los socios ven el saldo y cada movimiento. Un gasto sin boleta queda marcado.</li>
+            <li>Encuesta de barrio: anual, anónima, las mismas cinco preguntas; la junta y el municipio ven solo promedios.</li>
+            <li>Memoria del barrio: quien sube una foto con otras personas debe tener su permiso.</li>
+          </ul>
+        </section>
+        <section className="panel">
           <h2>Sin celular también se participa</h2>
           <ul className="small" style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
             <li>Asistencia: lista firmada en papel; su foto cuenta como verificación.</li>

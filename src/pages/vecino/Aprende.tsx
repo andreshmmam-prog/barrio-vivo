@@ -2,9 +2,11 @@ import { useState } from 'react'
 import { LECCIONES, LEYES } from '../../data/demo'
 import { Icon } from '../../components/Icon'
 import { Bar, Modal, PageTitle } from '../../components/ui'
+import { useMapu } from '../../lib/hooks'
 import { useStore } from '../../state/store'
 
 export default function Aprende() {
+  const m = useMapu()
   const { s, dispatch, toast } = useStore()
   const [leccion, setLeccion] = useState<string | null>(null)
   const [ley, setLey] = useState<string | null>(LEYES[0].id)
@@ -13,7 +15,7 @@ export default function Aprende() {
 
   return (
     <>
-      <PageTitle title="Aprende" sub="Para entender cómo funciona tu barrio" back="/vecino/perfil" />
+      <PageTitle title={m.t('Aprende', 'aprender')} sub="Para entender cómo funciona tu barrio" back="/vecino/perfil" />
       <div className="pad stack" style={{ paddingTop: 6 }}>
         <div className="card stack-sm" style={{ background: 'var(--verde-claro)', border: 'none' }}>
           <div className="between">

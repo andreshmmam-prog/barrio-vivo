@@ -20,7 +20,7 @@ export default function Socios() {
 
   return (
     <>
-      <PageTitle title="Socios" sub={`${junta.socios} inscritos · ${junta.sociosActivos} activos esta temporada`} />
+      <PageTitle title="Socios" back="/directiva/gestion" sub={`${junta.socios} inscritos · ${junta.sociosActivos} activos esta temporada`} />
       <div className="pad stack" style={{ paddingTop: 6 }}>
         <section className="card stack-sm" aria-labelledby="dir-t">
           <div className="between">

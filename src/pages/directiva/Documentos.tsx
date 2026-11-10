@@ -20,7 +20,7 @@ export default function Documentos() {
 
   return (
     <>
-      <PageTitle title="Documentos" sub="Todo a mano cuando te lo pidan" />
+      <PageTitle title="Documentos" sub="Todo a mano cuando te lo pidan" back="/directiva/gestion" />
       <div className="pad stack" style={{ paddingTop: 6 }}>
         <div className="card stack-sm" style={{ background: 'var(--verde)', color: '#fff', border: 'none' }}>
           <div className="between">

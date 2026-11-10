@@ -336,3 +336,60 @@ img { max-width: 100%; }
 .niveles li span { height: 8px; border-radius: 4px; background: var(--linea); }
 .niveles li[data-on='true'] { color: var(--verde); }
 .niveles li[data-on='true'] span { background: var(--verde); }
+
+/* ---- Mapa del barrio ---- */
+.barrio-mapa { width: 100%; height: auto; display: block; border-radius: 14px; border: 1px solid var(--linea); touch-action: manipulation; }
+
+/* ---- Encuesta de barrio ---- */
+.encuesta-p { border: 0; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.escala { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+.escala button { min-height: 44px; border-radius: 10px; border: 1px solid var(--linea-2); background: var(--blanco); font-size: 12px; font-weight: 600; padding: 4px 2px; color: var(--tinta); }
+.escala button[aria-pressed='true'] { background: var(--verde); border-color: var(--verde); color: #fff; }
+.encuesta-fila { display: grid; grid-template-columns: 118px minmax(0, 1fr) 46px; gap: 8px; align-items: center; }
+.encuesta-barra { position: relative; height: 12px; background: var(--papel-3); border-radius: 6px; overflow: hidden; }
+.encuesta-barra i { position: absolute; left: 0; height: 6px; border-radius: 3px; }
+.encuesta-barra i:first-child { top: 0; }
+.encuesta-barra i:last-child { bottom: 0; }
+
+/* ---- Asambleas y actas ---- */
+.acta { white-space: pre-wrap; font-family: var(--texto); font-size: 13px; line-height: 1.5; background: var(--papel); border: 1px solid var(--linea); border-radius: 12px; padding: 14px; margin: 0; max-height: 50vh; overflow: auto; }
+.quorum { background: var(--papel-2); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.votos-acuerdo .field input { min-width: 0; }
+
+/* ---- Vencimientos ---- */
+.vence { display: flex; gap: 12px; align-items: center; border-top: 1px solid var(--linea); padding-top: 10px; }
+.vence-dias { width: 52px; flex: none; border-radius: 12px; display: flex; flex-direction: column; align-items: center; font-size: 11px; padding: 6px 0; background: var(--verde-claro); color: var(--verde); }
+.vence-dias b { font-family: var(--display); font-size: 20px; line-height: 1; }
+.vence-dias[data-nivel='alta'] { background: var(--rojo-suave); color: var(--rojo-tinta); }
+.vence-dias[data-nivel='media'] { background: var(--sol-suave); color: var(--sol-tinta); }
+
+/* ---- Fondos ---- */
+.requisitos { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.requisitos li { display: flex; gap: 10px; align-items: flex-start; }
+.requisitos li > span { width: 24px; height: 24px; flex: none; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; background: var(--sol); color: var(--tinta); }
+.requisitos li[data-ok='true'] > span { background: var(--verde); color: #fff; }
+
+/* ---- Sede ---- */
+.fecha-mini { width: 44px; flex: none; text-align: center; background: var(--verde-claro); color: var(--verde); border-radius: 10px; padding: 4px 0; display: flex; flex-direction: column; font-size: 11px; }
+.fecha-mini b { font-family: var(--display); font-size: 18px; line-height: 1.1; }
+
+/* ---- Memoria del barrio ---- */
+.linea-tiempo { list-style: none; margin: 0; padding: 0 0 0 14px; border-left: 3px solid var(--verde-claro); display: flex; flex-direction: column; gap: 14px; }
+.linea-tiempo li { position: relative; display: flex; flex-direction: column; gap: 6px; }
+.linea-tiempo .epoca { font-family: var(--display); font-weight: 800; color: var(--verde); font-size: 15px; }
+.linea-tiempo .epoca::before { content: ''; position: absolute; left: -22px; top: 4px; width: 13px; height: 13px; border-radius: 7px; background: var(--sol); border: 2px solid var(--papel); }
+.foto-antigua { height: 110px; border-radius: 12px; background: linear-gradient(135deg, #D9C9A8, #B9A57E); color: #6B5A3A; }
+
+/* ---- Accesibilidad ---- */
+.ajuste { display: flex; justify-content: space-between; align-items: center; gap: 12px; border-top: 1px solid var(--linea); padding-top: 10px; }
+.ajuste span { display: flex; flex-direction: column; font-size: 15px; }
+.ajuste small { color: var(--gris); font-size: 13px; }
+.ajuste input { width: 24px; height: 24px; accent-color: var(--verde); flex: none; }
+.letra-grande .mobile-scroll { zoom: 1.15; }
+
+.mapa-puntos > div { position: relative; border-radius: 14px; padding: 10px 12px; background: #EEF3EC; border: 1px solid var(--linea); overflow: hidden; }
+.mapa-puntos i { position: absolute; border-radius: 50%; border: 2px solid #fff; transform: translate(-50%, -50%); box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+
+.mapa-puntos { grid-template-rows: 130px 130px; }
+.acceso > span:last-child { text-align: center; line-height: 1.2; overflow-wrap: anywhere; }
+.letra-grande .accesos { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 14px; }

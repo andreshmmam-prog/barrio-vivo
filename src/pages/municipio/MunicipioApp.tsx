@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import { Link, Route, Routes } from 'react-router-dom'
 import { AREAS, AREA_BY_ID, type AreaId } from '../../data/areas'
-import { COMUNA, HOY, SECTORES, TEMPORADA, VULNERABILIDAD } from '../../data/demo'
+import { COMUNA, ENCUESTA, ENCUESTA_SECTOR, HOY, SECTORES, TEMPORADA, VULNERABILIDAD } from '../../data/demo'
+import { coma } from '../../components/barrio'
 import type { EstadoNecesidad, RutaNecesidad, SectorId } from '../../data/types'
 import { Icon } from '../../components/Icon'
 import { Bar, CAMINOS, Chip, Empty, Modal, PasosSemaforo, SEMAFORO, Semaforo, cerrada } from '../../components/ui'
@@ -256,6 +257,8 @@ function PanelTerritorial() {
 
       <PrioridadTerritorial ivcSector={d.ivcSector} />
 
+      <PercepcionBarrio />
+
       <div className="grid-2">
         <section className="panel">
           <h2>Alertas tempranas</h2>
@@ -288,6 +291,90 @@ function PanelTerritorial() {
 const ORDEN_ESTADOS: EstadoNecesidad[] = ['enviada', 'recibida', 'evaluacion', 'aprobada', 'licitacion', 'ejecucion', 'respondida', 'resuelta', 'finalizada']
 
 const NIVEL_VULN = { baja: 1, media: 2, alta: 3 } as const
+
+/** Encuesta anual de barrio: el mismo set de preguntas cada año, para medir impacto. */
+export function cambioEncuesta() {
+  return SECTORES.map((sec) => {
+    const r = ENCUESTA_SECTOR[sec.id]
+    const prom = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length
+    return { sector: sec, r, antes: prom(r.y2025), ahora: prom(r.y2026), delta: prom(r.y2026) - prom(r.y2025) }
+  })
+}
+
+function PercepcionBarrio() {
+  const filas = cambioEncuesta()
+  const total = filas.reduce((n, f) => n + f.r.respuestas, 0)
+  const celda = (d: number) => ({ color: d > 0.05 ? 'var(--verde)' : d < -0.05 ? 'var(--rojo-tinta)' : 'var(--gris)', fontWeight: 700 })
+  return (
+    <section className="panel">
+      <div className="between" style={{ flexWrap: 'wrap' }}>
+        <h2>Cómo ven su barrio los vecinos</h2>
+        <span className="small muted">{ENCUESTA.nombre} · {total} respuestas anónimas · promedio de 1 a 5 y cambio desde 2025</span>
+      </div>
+      <div className="scroll-x">
+        <table className="tabla" style={{ minWidth: 720 }}>
+          <thead><tr><th>Sector</th>{ENCUESTA.preguntas.map((p) => <th key={p.id}>{p.corto}</th>)}<th>Promedio</th></tr></thead>
+          <tbody>
+            {filas.map((f) => (
+              <tr key={f.sector.id}>
+                <td><b>{f.sector.nombre}</b><div className="xs muted">{f.r.respuestas} respuestas</div></td>
+                {f.r.y2026.map((v, i) => {
+                  const d = v - f.r.y2025[i]
+                  return <td key={i}>{coma(v)} <span className="xs" style={celda(d)}>{d > 0.05 ? `+${coma(d)}` : d < -0.05 ? coma(d) : '='}</span></td>
+                })}
+                <td><b>{coma(f.ahora)}</b> <span className="xs" style={celda(f.delta)}>{f.delta > 0.05 ? '▲' : f.delta < -0.05 ? '▼' : '='}</span></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="xs muted">Resultados de ejemplo. Cruzado con la vitalidad, permite ver si donde hay más vida comunitaria la gente se siente más segura y confía más.</p>
+    </section>
+  )
+}
+
+/** Mapa esquemático de la comuna con las necesidades abiertas ubicadas por los vecinos. */
+function MapaNecesidades() {
+  const { s } = useStore()
+  const abiertas = s.necesidades.filter((n) => !cerrada(n.estado))
+  const sectorDe = (juntaId: string) => s.juntas.find((j) => j.id === juntaId)?.sector
+  const hash = (id: string) => [...id].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 997, 7)
+  return (
+    <section className="panel">
+      <div className="between" style={{ flexWrap: 'wrap' }}>
+        <h2>Mapa de necesidades abiertas</h2>
+        <span className="small muted">Cada punto lo marcó un vecino · el tamaño es el número de apoyos</span>
+      </div>
+      <div className="mapa mapa-puntos">
+        {(['norte', 'centro', 'rural', 'sur', 'poniente'] as SectorId[]).map((id) => {
+          const sec = SECTORES.find((x) => x.id === id)!
+          const aqui = abiertas.filter((n) => sectorDe(n.juntaId) === id)
+          return (
+            <div key={id} style={{ gridRow: id === 'rural' ? 'span 2' : undefined }} aria-label={`${sec.nombre}: ${aqui.length} necesidades abiertas`} role="img">
+              <span className="bold small">{sec.nombre} · {aqui.length}</span>
+              {aqui.map((n) => {
+                const p = n.punto ?? { x: 15 + (hash(n.id) % 70), y: 15 + (hash(n.id + 'y') % 45) }
+                const tam = Math.round(10 + Math.min(18, n.apoyos / 6))
+                return (
+                  <i
+                    key={n.id}
+                    title={`${n.titulo} · ${n.apoyos} apoyos`}
+                    style={{ left: `${Math.min(92, Math.max(4, p.x))}%`, top: `${Math.min(88, 34 + (p.y / 70) * 54)}%`, width: tam, height: tam, background: AREA_BY_ID[n.area].color }}
+                  />
+                )
+              })}
+            </div>
+          )
+        })}
+      </div>
+      <div className="leyenda">
+        {[...new Set(abiertas.map((n) => n.area))].map((a) => (
+          <span key={a} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginRight: 8 }}><i style={{ width: 10, height: 10, borderRadius: 5, background: AREA_BY_ID[a].color }} /> {AREA_BY_ID[a].corto}</span>
+        ))}
+      </div>
+    </section>
+  )
+}
 
 /** Cruza la vitalidad de cada sector con su vulnerabilidad social: baja vitalidad + alta vulnerabilidad = prioridad. */
 export function prioridades(ivcSector: Record<string, number>) {
@@ -345,6 +432,7 @@ function Necesidades() {
   return (
     <>
       <WebHead title="Necesidades de los vecinos" sub="Cada cambio de estado lo ven los vecinos en su app, junto a los días de espera." />
+      <MapaNecesidades />
       <div className="pipeline">
         {ORDEN_ESTADOS.filter((e) => s.necesidades.some((n) => n.estado === e) || CAMINOS.respuesta.estados.includes(e)).map((e) => (
           <button
@@ -512,6 +600,9 @@ function Informe() {
   const asistencia = aprobadas.reduce((n, a) => n + a.asistentes, 0)
   const resueltas = s.necesidades.filter((n) => cerrada(n.estado)).length
   const prio = prioridades(d.ivcSector).filter((p) => p.nivel === 'alta')
+  const enc = cambioEncuesta()
+  const mejor = [...enc].sort((a, b) => b.delta - a.delta)[0]
+  const peor = [...enc].sort((a, b) => a.ahora - b.ahora)[0]
   const masBaja = d.brechas.at(-1)!
   const sectorBajo = SECTORES.reduce((m, x) => (d.ivcSector[x.id] < d.ivcSector[m.id] ? x : m), SECTORES[0])
   const lider = [...tabla].sort((a, b) => b.porSocio - a.porSocio)[0]
@@ -533,6 +624,7 @@ function Informe() {
           <li><b>Mayor brecha:</b> {masBaja.area.nombre}. Solo el {masBaja.pct}% de las juntas realizó actividades en esta área.</li>
           <li><b>Sector prioritario:</b> {sectorBajo.nombre}, con vitalidad {d.ivcSector[sectorBajo.id]} sobre 100.</li>
           <li><b>Prioridad territorial:</b> {prio.length ? `${prio.map((p) => p.sector.nombre).join(' y ')}: baja vitalidad comunitaria y alta vulnerabilidad social (datos de vulnerabilidad de ejemplo).` : 'ningún sector combina baja vitalidad y alta vulnerabilidad.'}</li>
+          <li><b>Percepción del barrio:</b> el sector {mejor.sector.nombre.toLowerCase()} es el que más mejoró desde 2025 (+{coma(mejor.delta)} sobre 5); el sector {peor.sector.nombre.toLowerCase()} tiene la percepción más baja ({coma(peor.ahora)} sobre 5), sobre todo en seguridad.</li>
           <li><b>Respuesta municipal:</b> {resueltas} necesidades resueltas o finalizadas; el tiempo promedio de respuesta es de {d.tiempo} días.</li>
           <li><b>Juventud:</b> el {pct(d.juvComunal)} de los asistentes tiene entre 14 y 29 años; el sector con menos jóvenes es {[...d.juvSector].sort((a, b) => a.share - b.share)[0].sector.nombre}.</li>
           <li><b>Manos Vecinas:</b> {d.cumplidas.length} ayudas cumplidas entre vecinos, {d.horasAyuda} horas de voluntariado; la más pedida es {d.porCategoria[0].categoria.toLowerCase()}.</li>
