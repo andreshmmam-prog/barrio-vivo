@@ -5,10 +5,12 @@ import Actividades from './Actividades'
 import NuevaActividad from './NuevaActividad'
 import Documentos from './Documentos'
 import Socios from './Socios'
+import Participacion from './Participacion'
 
 const NAV = [
   { to: '/directiva', label: 'Panel', icon: 'panel', end: true },
   { to: '/directiva/actividades', label: 'Actividades', icon: 'calendario' },
+  { to: '/directiva/participacion', label: 'Participa', icon: 'participa' },
   { to: '/directiva/socios', label: 'Socios', icon: 'socios' },
   { to: '/directiva/documentos', label: 'Documentos', icon: 'documento' },
 ]
@@ -21,6 +23,7 @@ export default function DirectivaApp() {
         <Route path="actividades" element={<Actividades />} />
         <Route path="actividades/nueva" element={<NuevaActividad />} />
         <Route path="documentos" element={<Documentos />} />
+        <Route path="participacion" element={<Participacion />} />
         <Route path="socios" element={<Socios />} />
       </Routes>
     </MobileFrame>

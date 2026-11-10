@@ -331,3 +331,8 @@ img { max-width: 100%; }
 .filtro-chips button { min-height: 36px; border-radius: 18px; padding: 0 14px; font-size: 13px; font-weight: 700; background: var(--blanco); border: 1.5px solid var(--linea-2); }
 .filtro-chips button[aria-pressed='true'] { background: var(--verde); color: #fff; border-color: var(--verde); }
 .whatsapp-box { white-space: pre-wrap; background: #E7F6EC; border-radius: 12px; padding: 12px 14px; font-size: 14px; line-height: 1.5; border: 1px solid #C5E6CF; }
+.niveles { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+.niveles li { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 700; color: var(--gris); }
+.niveles li span { height: 8px; border-radius: 4px; background: var(--linea); }
+.niveles li[data-on='true'] { color: var(--verde); }
+.niveles li[data-on='true'] span { background: var(--verde); }

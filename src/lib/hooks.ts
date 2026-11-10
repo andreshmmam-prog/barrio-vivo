@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { VECINOS } from '../data/demo'
 import { useStore } from '../state/store'
-import { ivc, tablaGeneral } from './scoring'
+import { ivc, nivelJunta, tablaGeneral } from './scoring'
 
 /** Tabla general calculada a partir del estado actual. */
 export function useTabla() {
@@ -25,4 +25,13 @@ export function useVecino() {
   const horas = v.horasBase + (s.horasExtra[v.id] ?? 0)
   const junta = s.juntas.find((j) => j.id === v.juntaId)!
   return { ...v, horas, junta }
+}
+
+/** Sello de avance de cada junta activa. */
+export function useNiveles() {
+  const { s } = useStore()
+  return useMemo(
+    () => new Map(s.juntas.filter((j) => j.estado === 'activa').map((j) => [j.id, nivelJunta(j, s.actividades, s.documentos)])),
+    [s.juntas, s.actividades, s.documentos],
+  )
 }

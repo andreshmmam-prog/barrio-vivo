@@ -133,6 +133,14 @@ export const JUNTAS: Junta[] = [
 // ---- Personas de ejemplo --------------------------------------------------------
 // Un perfil individual por persona; las membresías son sus perfiles comunitarios.
 
+// Vulnerabilidad socioterritorial por sector: DATO DE EJEMPLO.
+// En la versión real se toma del índice oficial del Ministerio de Desarrollo Social, por unidad vecinal.
+export const VULNERABILIDAD: Record<string, 'baja' | 'media' | 'alta'> = {
+  norte: 'media', centro: 'baja', sur: 'alta', poniente: 'media', rural: 'alta',
+}
+
+export const RED_CUIDADOS = 'Red Local de Apoyos y Cuidados · Municipalidad [TELÉFONO]'
+
 export const VECINOS: Vecino[] = [
   {
     id: 'marta', nombre: 'Marta González', corto: 'Marta G.', edad: 52, tramo: '30-59', juntaId: 'aromos',
@@ -266,13 +274,14 @@ export const ACTIVIDADES: Actividad[] = generarActividades()
 // ---- Necesidades -------------------------------------------------------------
 
 export const NECESIDADES: Necesidad[] = [
-  { id: 'n1', juntaId: 'aromos', titulo: 'Pasaje Los Robles sin luz, se siente inseguro', detalle: 'Tres postes sin ampolleta hace dos meses.', area: 'seguridad', apoyos: 58, estado: 'evaluacion', enviada: '2026-09-18', respuesta: 'Derivado a Alumbrado Público para catastro.', actualizada: '2026-10-02', comentarios: [{ autor: 'Jorge M.', texto: 'Anoche además robaron cables del poste de la esquina.', fecha: '2026-11-05' }] },
+  { id: 'n1', juntaId: 'aromos', titulo: 'Pasaje Los Robles sin luz, se siente inseguro', detalle: 'Tres postes sin ampolleta hace dos meses.', area: 'seguridad', apoyos: 58, estado: 'licitacion', ruta: 'proyecto', enviada: '2026-09-18', respuesta: 'Aprobada la reposición de 3 luminarias. Alumbrado Público la está licitando.', actualizada: '2026-10-28', comentarios: [{ autor: 'Jorge M.', texto: 'Anoche además robaron cables del poste de la esquina.', fecha: '2026-11-05' }] },
+  { id: 'n12', juntaId: 'aromos', titulo: 'Postes sin luz en Los Robles', detalle: 'De noche no se ve nada en el pasaje.', area: 'seguridad', apoyos: 9, estado: 'enviada', enviada: '2026-11-02', comentarios: [] },
   { id: 'n2', juntaId: 'aromos', titulo: 'Microbasural en la esquina del canal', detalle: 'Se acumula basura y escombros cada fin de semana.', area: 'ambiente', apoyos: 34, estado: 'recibida', enviada: '2026-10-12', comentarios: [] },
   { id: 'n3', juntaId: 'aromos', titulo: 'Techo de la sede con goteras', detalle: 'En invierno no se puede usar el salón.', area: 'mejora', apoyos: 41, estado: 'respondida', enviada: '2026-08-05', respuesta: 'Puede postular al fondo vecinal 2027; Organizaciones Comunitarias apoya la postulación.', actualizada: '2026-09-10', comentarios: [] },
   { id: 'n4', juntaId: 'esperanza', titulo: 'Iluminación de pasajes del sector sur', detalle: 'Varios pasajes sin luz desde la tormenta.', area: 'seguridad', apoyos: 96, estado: 'enviada', enviada: '2026-09-02', comentarios: [] },
   { id: 'n5', juntaId: 'esperanza', titulo: 'Operativo de salud para adultos mayores', detalle: 'Muchos adultos mayores no llegan al CESFAM.', area: 'salud', apoyos: 52, estado: 'recibida', enviada: '2026-10-20', comentarios: [] },
-  { id: 'n6', juntaId: 'copihues', titulo: 'Reparar juegos de la plaza', detalle: 'El columpio está roto y es peligroso.', area: 'mejora', apoyos: 47, estado: 'resuelta', enviada: '2026-07-14', respuesta: 'Juegos reparados por la cuadrilla municipal.', actualizada: '2026-08-21', comentarios: [] },
-  { id: 'n7', juntaId: 'araucarias', titulo: 'Retiro de microbasural en el sitio eriazo', detalle: 'Hay escombros y riesgo de incendio.', area: 'ambiente', apoyos: 88, estado: 'evaluacion', enviada: '2026-08-28', respuesta: 'Programado con Aseo y Ornato.', actualizada: '2026-09-15', comentarios: [] },
+  { id: 'n6', juntaId: 'copihues', titulo: 'Reparar juegos de la plaza', detalle: 'El columpio está roto y es peligroso.', area: 'mejora', apoyos: 47, estado: 'finalizada', ruta: 'proyecto', avance: 100, enviada: '2026-07-14', respuesta: 'Juegos reparados por la cuadrilla municipal.', actualizada: '2026-08-21', comentarios: [] },
+  { id: 'n7', juntaId: 'araucarias', titulo: 'Retiro de microbasural en el sitio eriazo', detalle: 'Hay escombros y riesgo de incendio.', area: 'ambiente', apoyos: 88, estado: 'ejecucion', ruta: 'proyecto', avance: 60, enviada: '2026-08-28', respuesta: 'Aseo y Ornato retira escombros y cierra el sitio.', actualizada: '2026-10-30', comentarios: [] },
   { id: 'n8', juntaId: 'boldos', titulo: 'Paradero de buses sin techo', detalle: 'Los niños esperan el bus escolar bajo la lluvia.', area: 'mejora', apoyos: 29, estado: 'enviada', enviada: '2026-08-11', comentarios: [] },
   { id: 'n9', juntaId: 'santarosa', titulo: 'Más rondas preventivas en la noche', detalle: 'Han aumentado los robos en la villa.', area: 'seguridad', apoyos: 71, estado: 'recibida', enviada: '2026-10-05', comentarios: [] },
   { id: 'n10', juntaId: 'bosque', titulo: 'Taller de salud mental para jóvenes', detalle: 'Los jóvenes no tienen espacios de apoyo.', area: 'salud', apoyos: 38, estado: 'enviada', enviada: '2026-10-25', comentarios: [] },
@@ -315,7 +324,7 @@ export const ALERTAS: Alerta[] = [
   { id: 'al2', juntaId: 'aromos', tipo: 'corte', titulo: 'Corte de agua el jueves 12', texto: 'Entre 9:00 y 14:00 horas en calles Los Robles y Los Maitenes. Guarda agua la noche anterior.', fecha: '2026-11-06', autor: 'Empresa sanitaria · aviso programado', comentarios: [] },
   { id: 'al3', juntaId: 'aromos', tipo: 'mascota', titulo: 'Se perdió Canela', texto: 'Perrita café, mediana, con collar rojo. Se escapó el martes cerca de la plaza.', fecha: '2026-11-05', autor: 'Carmen R.', comentarios: [{ autor: 'Luis A.', texto: 'La vi esta mañana cerca de la multicancha.', fecha: '2026-11-06' }] },
   { id: 'al4', juntaId: 'aromos', tipo: 'operativo', titulo: 'Vacunación contra la influenza en la sede', texto: 'Martes 10, de 10:00 a 13:00 horas. Adultos mayores, embarazadas y enfermos crónicos. Trae tu carnet.', fecha: '2026-11-04', autor: 'CESFAM del sector', comentarios: [] },
-  { id: 'al5', juntaId: 'aromos', tipo: 'seguridad', titulo: 'Robo de cables en pasaje Los Robles', texto: 'Anoche robaron el cableado de dos postes. Ya se avisó a la compañía eléctrica y se hizo la denuncia.', fecha: '2026-11-05', autor: 'Jorge M.', comentarios: [] },
+  { id: 'al5', juntaId: 'aromos', tipo: 'seguridad', titulo: 'Infraestructura dañada', texto: 'Pasaje Los Robles · 05 nov, 23:00', fecha: '2026-11-05', autor: 'Jorge M.', comentarios: [] },
   { id: 'al6', juntaId: 'aromos', tipo: 'transito', titulo: 'Calle Los Maitenes cortada', texto: 'Trabajos de pavimentación hasta el viernes 13. Desvío por Los Robles.', fecha: '2026-11-03', autor: 'Directiva', comentarios: [] },
   { id: 'al7', juntaId: 'copihues', tipo: 'oficial', titulo: 'Inscripciones para Navidad', texto: 'Inscribe a tus niños hasta el 30 de noviembre con la secretaria.', fecha: '2026-11-02', autor: 'Directiva', comentarios: [] },
 ]

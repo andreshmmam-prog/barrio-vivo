@@ -4,8 +4,8 @@ import { AREAS } from '../../data/areas'
 import { HOY } from '../../data/demo'
 import { Icon } from '../../components/Icon'
 import { NuevaAlertaModal } from '../../components/comunidad'
-import { Bar, CambiarPerfil, Chip, Modal, Radar } from '../../components/ui'
-import { useIVC, useTabla } from '../../lib/hooks'
+import { Bar, CambiarPerfil, Chip, Modal, Radar, SelloNivel } from '../../components/ui'
+import { useIVC, useNiveles, useTabla } from '../../lib/hooks'
 import { REGLAS, areaMasDebil, diasEntre, fechaCorta, ordenar, pct, rankingJuventud } from '../../lib/scoring'
 import { useStore } from '../../state/store'
 import { JUNTA_DIRECTIVA } from './config'
@@ -19,7 +19,7 @@ export default function Panel() {
   const ivc = ivcs.get(junta.id)!
   const debil = areaMasDebil(fila)
   const aliada = ordenar(tabla.filter((f) => f.junta.id !== junta.id), 'total', debil.id)[0]
-  const pos = ordenar(tabla, 'porSocio').findIndex((f) => f.junta.id === junta.id) + 1
+  const nivel = useNiveles().get(junta.id)!
   const posJuv = rankingJuventud(tabla).findIndex((f) => f.junta.id === junta.id) + 1
   const pendientes = s.actividades.filter((a) => a.juntaId === junta.id && a.estado === 'pendiente').length
   const propuestas = s.propuestas.filter((p) => p.juntaId === junta.id && p.estado === 'pendiente').length
@@ -41,7 +41,7 @@ export default function Panel() {
     l.push(`*Barrio Vivo · JJVV ${junta.nombre}*`)
     l.push(`Resumen de la semana al ${fechaCorta(HOY)}`)
     l.push('')
-    l.push(`*Tabla general:* vamos ${pos}° de ${tabla.length} juntas.`)
+    l.push(`*Sello de la junta:* nivel ${nivel.nivel}.`)
     if (consulta) l.push(`*Consulta abierta:* ${consulta.pregunta} Cierra el ${fechaCorta(consulta.cierre)}.`)
     if (avisos.length) {
       l.push('')
@@ -65,7 +65,7 @@ export default function Panel() {
     l.push('')
     l.push('Entra a Barrio Vivo para participar.')
     return l.join('\n')
-  }, [s, junta, pos, tabla.length])
+  }, [s, junta, nivel.nivel])
 
   return (
     <>
@@ -94,11 +94,11 @@ export default function Panel() {
             <p className="num" style={{ fontSize: 26 }}>{junta.sociosActivos}</p>
             <p className="xs muted">de {junta.socios}</p>
           </div>
-          <div className="card" style={{ padding: 10 }}>
-            <p className="xs muted">Tabla general</p>
-            <p className="num" style={{ fontSize: 26 }}>{pos}°</p>
-            <p className="xs muted">{fila.liga.replace('Barrios ', '')}</p>
-          </div>
+          <Link to="/directiva/participacion" className="card" style={{ padding: 10, textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
+            <p className="xs muted">Sello</p>
+            <SelloNivel nivel={nivel.nivel} size={30} />
+            <p className="xs bold">{nivel.nivel}</p>
+          </Link>
         </div>
 
         <div className="row">
@@ -130,6 +130,15 @@ export default function Panel() {
                 <span className="grow small"><b>{docsAlerta} documentos requieren atención.</b></span>
               </Link>
             )}
+          </div>
+        )}
+
+        {nivel.falta.length > 0 && (
+          <div className="card stack-sm" style={{ background: 'var(--verde-claro)', border: 'none' }}>
+            <p className="bold small">Para subir al siguiente sello</p>
+            <ul className="small" style={{ margin: 0, paddingLeft: 18 }}>
+              {nivel.falta.map((f) => <li key={f}>{f}</li>)}
+            </ul>
           </div>
         )}
 

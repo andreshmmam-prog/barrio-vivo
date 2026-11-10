@@ -47,6 +47,7 @@ export interface Actividad {
   alianzaCon?: string // id de otra junta
   estado: 'pendiente' | 'aprobada' | 'rechazada'
   hito?: boolean // para Seguridad: logro sin asistentes
+  registro?: 'qr' | 'papel' // cómo se registró la asistencia
 }
 
 export interface Comentario {
@@ -55,7 +56,19 @@ export interface Comentario {
   fecha: string
 }
 
-export type EstadoNecesidad = 'enviada' | 'recibida' | 'evaluacion' | 'respondida' | 'resuelta'
+/** Camino simple (respuesta) o camino de obra (proyecto), con trazabilidad hasta el final. */
+export type EstadoNecesidad =
+  | 'enviada'
+  | 'recibida'
+  | 'evaluacion'
+  | 'respondida'
+  | 'resuelta'
+  | 'aprobada'
+  | 'licitacion'
+  | 'ejecucion'
+  | 'finalizada'
+
+export type RutaNecesidad = 'respuesta' | 'proyecto'
 
 export interface Necesidad {
   id: string
@@ -70,6 +83,10 @@ export interface Necesidad {
   respuesta?: string
   actualizada?: string
   comentarios: Comentario[]
+  ruta?: RutaNecesidad
+  avance?: number // % de avance de la obra
+  fusionadas?: string[] // títulos de necesidades iguales que se sumaron a esta
+  origen?: 'app' | 'asamblea'
 }
 
 export interface Opcion {

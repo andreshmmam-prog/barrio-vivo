@@ -3,7 +3,7 @@ import { AREAS, AREA_BY_ID, type AreaId } from '../../data/areas'
 import { HOY } from '../../data/demo'
 import { Icon } from '../../components/Icon'
 import { Comentarios } from '../../components/comunidad'
-import { Bar, Chip, Modal, PageTitle, PasosSemaforo, Semaforo, Tabs } from '../../components/ui'
+import { Bar, Chip, Modal, PageTitle, PasosSemaforo, Semaforo, Tabs, cerrada } from '../../components/ui'
 import { useVecino } from '../../lib/hooks'
 import { diasEntre, fechaCorta } from '../../lib/scoring'
 import { useStore } from '../../state/store'
@@ -112,6 +112,11 @@ function Necesidades() {
   const [detalle, setDetalle] = useState('')
   const [area, setArea] = useState<AreaId>('mejora')
   const lista = s.necesidades.filter((n) => n.juntaId === v.juntaId).sort((a, b) => b.apoyos - a.apoyos)
+  // Sugerir necesidades parecidas antes de crear una nueva (evita que los apoyos se dispersen)
+  const palabras = titulo.toLowerCase().split(/[^a-záéíóúñü]+/).filter((w) => w.length > 3)
+  const parecidas = palabras.length
+    ? lista.filter((n) => !cerrada(n.estado) && palabras.filter((w) => n.titulo.toLowerCase().includes(w)).length >= Math.min(2, palabras.length)).slice(0, 2)
+    : []
 
   return (
     <>
@@ -126,7 +131,7 @@ function Necesidades() {
               <span className="marca-area" style={{ background: a.color }} />
               <button className="grow" onClick={() => setAbierta(open ? null : n.id)} aria-expanded={open} style={{ background: 'none', border: 'none', textAlign: 'left', padding: 0 }}>
                 <span className="titulo" style={{ display: 'block' }}>{n.titulo}</span>
-                <span className="small muted">{a.corto} · {n.estado === 'resuelta' ? 'resuelta' : `${dias} días esperando`}</span>
+                <span className="small muted">{a.corto} · {cerrada(n.estado) ? 'cerrada' : `${dias} días esperando`}{n.origen === 'asamblea' ? ' · desde la asamblea' : ''}</span>
               </button>
               <button className="apoyo" aria-pressed={!!n.apoyada} aria-label={`Apoyar necesidad, ${n.apoyos} apoyos`} onClick={() => dispatch({ t: 'apoyar', id: n.id })}>
                 ▲ {n.apoyos}
@@ -137,7 +142,19 @@ function Necesidades() {
               <Semaforo estado={n.estado} />
               <span className="xs muted">Enviada el {fechaCorta(n.enviada)}</span>
             </div>
-            <PasosSemaforo estado={n.estado} />
+            <PasosSemaforo estado={n.estado} ruta={n.ruta} />
+            {n.ruta === 'proyecto' && n.avance !== undefined && (n.estado === 'ejecucion' || n.estado === 'finalizada') && (
+              <div className="stack-sm" style={{ gap: 6 }}>
+                <div className="foto-ph" style={{ height: 92, background: 'var(--papel-3)', color: 'var(--gris)', borderRadius: 12 }}>
+                  <Icon name="camara" size={22} /> <span style={{ marginLeft: 6 }}>[Foto de avance de la obra]</span>
+                </div>
+                <div className="resultado">
+                  <div className="between xs"><span>Avance de la obra</span><b>{n.avance}%</b></div>
+                  <Bar value={n.avance} height={8} />
+                </div>
+              </div>
+            )}
+            {n.fusionadas && n.fusionadas.length > 0 && <p className="xs muted">Incluye {n.fusionadas.length} necesidad igual que la directiva unió a esta.</p>}
             {open ? (
               <div className="stack-sm" style={{ paddingTop: 4 }}>
                 <p className="small">{n.detalle}</p>
@@ -183,6 +200,30 @@ function Necesidades() {
             ¿Qué problema ves en el barrio?
             <input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Ej: falta un lomo de toro frente a la escuela" required />
           </label>
+          {parecidas.length > 0 && (
+            <div className="regla">
+              <p className="small bold">¿Es igual a alguna de estas?</p>
+              <p className="xs muted">Si es la misma, apóyala: juntos suman más fuerza.</p>
+              {parecidas.map((n) => (
+                <div key={n.id} className="between" style={{ marginTop: 8 }}>
+                  <span className="small">{n.titulo} · {n.apoyos} apoyos</span>
+                  <button
+                    type="button"
+                    className="btn btn-chico"
+                    onClick={() => {
+                      if (!n.apoyada) dispatch({ t: 'apoyar', id: n.id })
+                      setTitulo('')
+                      setDetalle('')
+                      setNueva(false)
+                      toast('Sumaste tu apoyo a la necesidad existente')
+                    }}
+                  >
+                    Apoyar esta
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
           <label className="field">
             Cuéntanos más
             <textarea value={detalle} onChange={(e) => setDetalle(e.target.value)} placeholder="Dónde, desde cuándo, a quién afecta" />

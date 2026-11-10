@@ -191,7 +191,7 @@ function Premiacion() {
     <>
       <WebHead
         title="Premios Barrio Vivo"
-        sub={`${TEMPORADA.nombre} · ganadores por puntos cada 10 socios, para que juntas de todos los tamaños puedan ganar.`}
+        sub={`${TEMPORADA.nombre} · ganadores por puntos cada 10 socios. Los premios son reconocimiento, nunca fondos ni recursos municipales.`}
         action={
           <button
             className={`btn ${cerrada ? 'btn-borde' : 'btn-sol'}`}
@@ -290,7 +290,7 @@ function Reglas() {
             <tbody>
               <tr><td>Actividad registrada</td><td className="num">+{REGLAS.base}</td></tr>
               <tr><td>Participación (1 punto cada 4 asistentes, tope)</td><td className="num">+{REGLAS.participacionMax}</td></tr>
-              <tr><td>Verificada con fotos y QR</td><td className="num">×{String(REGLAS.multVerificada).replace('.', ',')}</td></tr>
+              <tr><td>Verificada con fotos y QR, o con foto de la lista firmada en papel</td><td className="num">×{String(REGLAS.multVerificada).replace('.', ',')}</td></tr>
               <tr><td>En alianza con otra junta</td><td className="num">+{REGLAS.alianza}</td></tr>
               <tr><td>Bono juvenil: 30% o más de asistentes de 14 a 29 años</td><td className="num">+{REGLAS.juvenil}</td></tr>
               <tr><td>Ayuda cumplida en Manos Vecinas (Social y Solidaridad)</td><td className="num">+{REGLAS.ayuda}</td></tr>
@@ -340,7 +340,8 @@ function Reglas() {
           <ul className="small" style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
             <li>Se informan hechos: qué pasó, dónde y cuándo.</li>
             <li>Nunca fotos, nombres ni descripciones de personas en avisos de seguridad.</li>
-            <li>Ante una emergencia en curso, primero el 133.</li>
+            <li>Los avisos de seguridad de vecinos se eligen de una lista cerrada (luminaria, alarma, infraestructura dañada, simulacro, reunión) con calle y hora; no hay texto libre.</li>
+            <li>Ante una emergencia en curso, primero el 133 o el 131: la app muestra el botón de llamada.</li>
             <li>Comentarios de una línea; los avisos que no cumplen se ocultan.</li>
           </ul>
         </section>
@@ -350,7 +351,18 @@ function Reglas() {
             <li>Premios por área según puntos cada 10 socios, para que una junta pequeña pueda ganar.</li>
             <li>Ligas por tamaño: pequeñas (menos de 80 socios), medianas (80 a 139) y grandes (140 o más).</li>
             <li>Validación de toda actividad sobre {REGLAS.umbralRevision} puntos o sin evidencia, más una muestra al azar.</li>
+            <li>Primero se muestran los sellos de avance (Semilla, Brote, Árbol, Bosque), que toda junta puede alcanzar; la tabla se compara solo dentro de cada liga.</li>
             <li>Temporadas semestrales que se reinician; la tabla de hoy es al {fechaCorta(HOY)}.</li>
+            <li><b>Los premios nunca son fondos ni recursos municipales.</b> Son reconocimiento: trofeo, diploma, ceremonia y difusión. Así el ranking no condiciona la asignación de recursos públicos.</li>
+          </ul>
+        </section>
+        <section className="panel">
+          <h2>Sin celular también se participa</h2>
+          <ul className="small" style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <li>Asistencia: lista firmada en papel; su foto cuenta como verificación.</li>
+            <li>Consultas: papeletas en la asamblea; la directiva suma los votos y adjunta el acta.</li>
+            <li>Necesidades: las planteadas en asamblea se registran con sus votos y quedan marcadas "desde la asamblea".</li>
+            <li>Necesidades iguales se unen para que los apoyos no se dispersen.</li>
           </ul>
         </section>
       </div>

@@ -25,6 +25,9 @@ export default function NuevaActividad() {
   const [qrOpen, setQrOpen] = useState(false)
   const [publico, setPublico] = useState<Publico>('todas')
   const [jovenes, setJovenes] = useState(0)
+  const [registro, setRegistro] = useState<'qr' | 'papel'>('qr')
+  const [papelOpen, setPapelOpen] = useState(false)
+  const [firmas, setFirmas] = useState(30)
 
   const otras = s.juntas.filter((j) => j.id !== JUNTA_DIRECTIVA && j.estado === 'activa')
   const d = useMemo(
@@ -42,7 +45,7 @@ export default function NuevaActividad() {
         onSubmit={(e) => {
           e.preventDefault()
           if (!nombre.trim()) return
-          const r = registrarActividad({ juntaId: JUNTA_DIRECTIVA, nombre: nombre.trim(), area, publico, fecha, lugar, asistentes, fotos, qr, jovenes, alianzaCon: alianza ? aliada : undefined, hito })
+          const r = registrarActividad({ juntaId: JUNTA_DIRECTIVA, nombre: nombre.trim(), area, publico, fecha, lugar, asistentes, fotos, qr, jovenes, alianzaCon: alianza ? aliada : undefined, hito, registro })
           toast(r.pendiente ? `Enviada a validación: +${r.puntos} puntos al aprobarse` : `¡Publicada! +${r.puntos} puntos para tu junta`)
           nav('/directiva/actividades')
         }}
@@ -137,11 +140,14 @@ export default function NuevaActividad() {
             {qr > 0 ? `${qr} registrados` : 'QR de asistencia'}
           </button>
         </div>
+        <button type="button" className="btn btn-borde btn-chico" onClick={() => { setFirmas(asistentes); setPapelOpen(true) }}>
+          <Icon name="documento" size={16} /> {registro === 'papel' && qr > 0 ? `Lista en papel: ${qr} firmas` : 'Sin celular: usar lista de asistencia en papel'}
+        </button>
         {qr > 0 && !hito && (
           <label className="field">
-            Jóvenes de 14 a 29 años registrados con QR
+            {registro === 'papel' ? 'Jóvenes de 14 a 29 años en la lista' : 'Jóvenes de 14 a 29 años registrados con QR'}
             <input type="number" min={0} max={qr} value={jovenes} onChange={(e) => setJovenes(Math.max(0, Math.min(qr, Number(e.target.value) || 0)))} />
-            <small>El QR registra el tramo de edad de cada asistente; la junta solo ve el total.</small>
+            <small>{registro === 'papel' ? 'La lista pide solo el tramo de edad; la junta informa el total.' : 'El QR registra el tramo de edad de cada asistente; la junta solo ve el total.'}</small>
           </label>
         )}
         {fotos === 0 && (
@@ -167,6 +173,31 @@ export default function NuevaActividad() {
         <button className="btn btn-block">Publicar actividad</button>
       </form>
 
+      <Modal open={papelOpen} onClose={() => setPapelOpen(false)} title="Lista de asistencia en papel">
+        <form
+          className="modal-body"
+          onSubmit={(e) => {
+            e.preventDefault()
+            setRegistro('papel')
+            setQr(firmas)
+            setJovenes(jovenesEsperados(firmas, publico))
+            if (fotos === 0) setFotos(1)
+            setPapelOpen(false)
+          }}
+        >
+          <p className="small">Para quienes no usan celular: una lista firmada con nombre y tramo de edad. La foto de la lista cuenta como verificación.</p>
+          <label className="btn btn-borde" style={{ minHeight: 64, borderStyle: 'dashed' }}>
+            <Icon name="camara" size={20} /> Foto de la lista firmada
+            <input type="file" accept="image/*" className="sr-only" onChange={() => setFotos(Math.max(1, fotos))} />
+          </label>
+          <label className="field">
+            Personas que firmaron
+            <input type="number" min={1} max={999} value={firmas} onChange={(e) => setFirmas(Math.max(1, Number(e.target.value) || 1))} />
+          </label>
+          <button className="btn btn-block">Usar lista en papel</button>
+        </form>
+      </Modal>
+
       <Modal open={qrOpen} onClose={() => setQrOpen(false)} title="Asistencia con QR">
         <div className="modal-body" style={{ alignItems: 'center', textAlign: 'center' }}>
           <QRFalso />
@@ -176,6 +207,7 @@ export default function NuevaActividad() {
             onClick={() => {
               const n = Math.max(1, Math.round(asistentes * 0.85))
               setQr(n)
+              setRegistro('qr')
               setJovenes(jovenesEsperados(n, publico))
               setQrOpen(false)
             }}

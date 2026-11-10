@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { AREAS, AREA_BY_ID, type AreaId } from '../../data/areas'
-import { HOY, TRAMOS, VECINOS, esJoven } from '../../data/demo'
+import { HOY, RED_CUIDADOS, TRAMOS, VECINOS, esJoven } from '../../data/demo'
 import type { Ayuda, CategoriaAyuda } from '../../data/types'
 import { Icon } from '../../components/Icon'
 import { AreaChip, Bar, Chip, Empty, Modal, PageTitle, Tabs } from '../../components/ui'
@@ -9,11 +9,11 @@ import { REGLAS, fechaCorta, pct, rankingJuventud } from '../../lib/scoring'
 import { useStore } from '../../state/store'
 
 export const CATEGORIAS: Record<CategoriaAyuda, string> = {
-  acompanar: 'Acompañar',
+  acompanar: 'Cuidados y acompañamiento',
   cargar: 'Cargar o mover',
   prestar: 'Prestar',
   ensenar: 'Enseñar',
-  cuidar: 'Cuidar',
+  cuidar: 'Cuidar casa o mascotas',
   reparar: 'Reparar',
 }
 
@@ -90,6 +90,7 @@ function Ayudas() {
           <button key={k} aria-pressed={filtro === k} onClick={() => setFiltro(k)}>{l}</button>
         ))}
       </div>
+      <AvisoCuidados />
       {lista.length === 0 && <Empty>No hay ayudas en esta vista.</Empty>}
       {lista.map((a) => {
         const mia = a.autorId === v.id
@@ -159,6 +160,7 @@ function Ayudas() {
               ))}
             </select>
           </label>
+          {form.categoria === 'acompanar' && <AvisoCuidados />}
           <label className="field">
             {nueva === 'pide' ? '¿Qué necesitas?' : '¿Qué ofreces?'}
             <input value={form.titulo} maxLength={80} onChange={(e) => setForm({ ...form, titulo: e.target.value })} placeholder={nueva === 'pide' ? 'Ej: Acompañamiento al CESFAM' : 'Ej: Presto herramientas'} required />
@@ -350,5 +352,17 @@ function Jovenes() {
         </div>
       )}
     </>
+  )
+}
+
+/** Manos Vecinas es ayuda entre vecinos: los cuidados permanentes se derivan a la red municipal. */
+function AvisoCuidados() {
+  return (
+    <div className="regla" style={{ background: 'var(--verde-claro)', borderColor: '#BFD9CA' }}>
+      <p className="small">
+        <b>¿Cuidas a alguien de forma permanente o necesitas ese apoyo?</b> Manos Vecinas es ayuda entre vecinos, no un servicio de cuidados.
+        Contacta a la {RED_CUIDADOS}.
+      </p>
+    </div>
   )
 }

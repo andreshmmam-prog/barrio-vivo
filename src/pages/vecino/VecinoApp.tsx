@@ -12,7 +12,7 @@ const NAV = [
   { to: '/vecino', label: 'Inicio', icon: 'inicio', end: true },
   { to: '/vecino/manos', label: 'Manos', icon: 'manos' },
   { to: '/vecino/participa', label: 'Participa', icon: 'participa' },
-  { to: '/vecino/tabla', label: 'Tabla', icon: 'trofeo' },
+  { to: '/vecino/tabla', label: 'Logros', icon: 'trofeo' },
   { to: '/vecino/perfil', label: 'Perfil', icon: 'perfil' },
 ]
 

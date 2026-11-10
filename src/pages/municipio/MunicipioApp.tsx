@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react'
 import { Link, Route, Routes } from 'react-router-dom'
 import { AREAS, AREA_BY_ID, type AreaId } from '../../data/areas'
-import { COMUNA, HOY, SECTORES, TEMPORADA } from '../../data/demo'
-import type { EstadoNecesidad, SectorId } from '../../data/types'
+import { COMUNA, HOY, SECTORES, TEMPORADA, VULNERABILIDAD } from '../../data/demo'
+import type { EstadoNecesidad, RutaNecesidad, SectorId } from '../../data/types'
 import { Icon } from '../../components/Icon'
-import { Bar, Chip, Empty, Modal, PasosSemaforo, SEMAFORO, Semaforo } from '../../components/ui'
+import { Bar, CAMINOS, Chip, Empty, Modal, PasosSemaforo, SEMAFORO, Semaforo, cerrada } from '../../components/ui'
 import { WebHead, WebShell } from '../../components/WebShell'
 import { useIVC, useTabla } from '../../lib/hooks'
 import { diasEntre, fechaCorta, miles, pct } from '../../lib/scoring'
@@ -100,7 +100,7 @@ function PanelTerritorial() {
   const ivcs = useIVC()
   const d = useDatosMunicipio()
   const [sector, setSector] = useState<SectorId | null>(null)
-  const abiertas = s.necesidades.filter((n) => n.estado !== 'resuelta')
+  const abiertas = s.necesidades.filter((n) => !cerrada(n.estado))
   const top = [...abiertas].sort((a, b) => b.apoyos - a.apoyos).slice(0, 4)
   const masBaja = d.brechas.at(-1)!
   const juntasSector = sector ? d.activas.filter((j) => j.sector === sector) : []
@@ -254,6 +254,8 @@ function PanelTerritorial() {
         </section>
       </div>
 
+      <PrioridadTerritorial ivcSector={d.ivcSector} />
+
       <div className="grid-2">
         <section className="panel">
           <h2>Alertas tempranas</h2>
@@ -283,7 +285,47 @@ function PanelTerritorial() {
   )
 }
 
-const ORDEN_ESTADOS: EstadoNecesidad[] = ['enviada', 'recibida', 'evaluacion', 'respondida', 'resuelta']
+const ORDEN_ESTADOS: EstadoNecesidad[] = ['enviada', 'recibida', 'evaluacion', 'aprobada', 'licitacion', 'ejecucion', 'respondida', 'resuelta', 'finalizada']
+
+const NIVEL_VULN = { baja: 1, media: 2, alta: 3 } as const
+
+/** Cruza la vitalidad de cada sector con su vulnerabilidad social: baja vitalidad + alta vulnerabilidad = prioridad. */
+export function prioridades(ivcSector: Record<string, number>) {
+  return SECTORES.map((sec) => {
+    const vit = ivcSector[sec.id] ?? 0
+    const vuln = VULNERABILIDAD[sec.id] ?? 'media'
+    const puntaje = (100 - vit) * NIVEL_VULN[vuln]
+    const nivel: 'alta' | 'media' | 'baja' = vuln === 'alta' && vit < 55 ? 'alta' : (vuln !== 'baja' && vit < 60) || (vuln === 'alta') ? 'media' : 'baja'
+    return { sector: sec, vit, vuln, puntaje, nivel }
+  }).sort((a, b) => b.puntaje - a.puntaje)
+}
+
+function PrioridadTerritorial({ ivcSector }: { ivcSector: Record<string, number> }) {
+  const filas = prioridades(ivcSector)
+  const color = { alta: 'var(--rojo-tinta)', media: 'var(--sol-tinta)', baja: 'var(--verde)' }
+  return (
+    <section className="panel">
+      <h2>Prioridad territorial</h2>
+      <p className="small muted">Cruza la vitalidad comunitaria con la vulnerabilidad social de cada sector. Donde hay poca vida comunitaria y más vulnerabilidad, conviene llegar primero.</p>
+      <div className="scroll-x">
+        <table className="tabla" style={{ minWidth: 560 }}>
+          <thead><tr><th>Sector</th><th>Vitalidad</th><th>Vulnerabilidad</th><th>Prioridad</th></tr></thead>
+          <tbody>
+            {filas.map((f) => (
+              <tr key={f.sector.id}>
+                <td><b>{f.sector.nombre}</b></td>
+                <td><span className="num">{f.vit}</span><span className="xs muted"> / 100</span></td>
+                <td style={{ textTransform: 'capitalize' }}>{f.vuln}</td>
+                <td><span className="chip" style={{ color: color[f.nivel], background: 'var(--fondo)', border: `1px solid ${color[f.nivel]}`, textTransform: 'capitalize' }}>{f.nivel}</span></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="xs muted">Vulnerabilidad de ejemplo. En el piloto se usa la fuente oficial por unidad vecinal (por ejemplo, Registro Social de Hogares agregado), cargada por el municipio.</p>
+    </section>
+  )
+}
 
 function Necesidades() {
   const { s, dispatch, toast } = useStore()
@@ -292,6 +334,8 @@ function Necesidades() {
   const [editar, setEditar] = useState<string | null>(null)
   const [estado, setEstado] = useState<EstadoNecesidad>('recibida')
   const [respuesta, setRespuesta] = useState('')
+  const [ruta, setRuta] = useState<RutaNecesidad>('respuesta')
+  const [avance, setAvance] = useState(0)
   const lista = s.necesidades
     .filter((n) => (filtro === 'todas' || n.estado === filtro) && (area === 'todas' || n.area === area))
     .sort((a, b) => b.apoyos - a.apoyos)
@@ -302,7 +346,7 @@ function Necesidades() {
     <>
       <WebHead title="Necesidades de los vecinos" sub="Cada cambio de estado lo ven los vecinos en su app, junto a los días de espera." />
       <div className="pipeline">
-        {ORDEN_ESTADOS.map((e) => (
+        {ORDEN_ESTADOS.filter((e) => s.necesidades.some((n) => n.estado === e) || CAMINOS.respuesta.estados.includes(e)).map((e) => (
           <button
             key={e}
             onClick={() => setFiltro(filtro === e ? 'todas' : e)}
@@ -338,11 +382,17 @@ function Necesidades() {
                     <td>{nombre(n.juntaId)}</td>
                     <td className="num">{n.apoyos}</td>
                     <td style={{ color: n.estado === 'enviada' && dias > 45 ? 'var(--rojo-tinta)' : undefined, fontWeight: n.estado === 'enviada' && dias > 45 ? 700 : 400 }}>
-                      {n.estado === 'resuelta' ? '—' : `${dias} días`}
+                      {cerrada(n.estado) ? '—' : `${dias} días`}{n.ruta === 'proyecto' && n.avance !== undefined && !cerrada(n.estado) ? <div className="xs muted">obra {n.avance}%</div> : null}
                     </td>
                     <td><Semaforo estado={n.estado} /></td>
                     <td>
-                      <button className="btn btn-chico" onClick={() => { setEditar(n.id); setEstado(n.estado === 'resuelta' ? 'resuelta' : ORDEN_ESTADOS[ORDEN_ESTADOS.indexOf(n.estado) + 1]); setRespuesta(n.respuesta ?? '') }}>
+                      <button className="btn btn-chico" onClick={() => {
+                        const r = n.ruta ?? 'respuesta'
+                        const est = CAMINOS[r].estados
+                        const i = est.indexOf(n.estado)
+                        setEditar(n.id); setRuta(r); setAvance(n.avance ?? 0)
+                        setEstado(cerrada(n.estado) ? n.estado : est[Math.min(est.length - 1, i + 1)] ?? est[1]); setRespuesta(n.respuesta ?? '')
+                      }}>
                         Actualizar
                       </button>
                     </td>
@@ -360,7 +410,7 @@ function Necesidades() {
             className="modal-body"
             onSubmit={(e) => {
               e.preventDefault()
-              dispatch({ t: 'estadoNecesidad', id: actual.id, estado, respuesta: respuesta.trim() || undefined })
+              dispatch({ t: 'estadoNecesidad', id: actual.id, estado, respuesta: respuesta.trim() || undefined, ruta, avance: ruta === 'proyecto' ? (estado === 'finalizada' ? 100 : avance) : undefined })
               setEditar(null)
               toast('Actualizado. Los vecinos ya lo ven en su app')
             }}
@@ -370,13 +420,31 @@ function Necesidades() {
               <p className="small muted">{nombre(actual.juntaId)} · {actual.apoyos} apoyos · enviada el {fechaCorta(actual.enviada)}</p>
             </div>
             <p className="small">{actual.detalle}</p>
+            <fieldset className="field" style={{ border: 0, padding: 0, margin: 0 }}>
+              <legend className="bold small">¿Qué camino sigue?</legend>
+              <div className="chips">
+                {(['respuesta', 'proyecto'] as RutaNecesidad[]).map((r) => (
+                  <button key={r} type="button" className={`btn btn-chico ${ruta === r ? '' : 'btn-borde'}`} aria-pressed={ruta === r}
+                    onClick={() => { setRuta(r); if (!CAMINOS[r].estados.includes(estado)) setEstado(CAMINOS[r].estados[1]) }}>
+                    {r === 'respuesta' ? 'Respuesta o gestión' : 'Proyecto u obra'}
+                  </button>
+                ))}
+              </div>
+              <small>Una obra pasa por aprobación, licitación y ejecución; los vecinos ven el avance.</small>
+            </fieldset>
             <label className="field">
               Nuevo estado
               <select value={estado} onChange={(e) => setEstado(e.target.value as EstadoNecesidad)}>
-                {ORDEN_ESTADOS.map((e) => <option key={e} value={e}>{SEMAFORO[e].label}</option>)}
+                {CAMINOS[ruta].estados.map((e) => <option key={e} value={e}>{SEMAFORO[e].label}</option>)}
               </select>
             </label>
-            <PasosSemaforo estado={estado} />
+            <PasosSemaforo estado={estado} ruta={ruta} />
+            {ruta === 'proyecto' && ['ejecucion', 'licitacion', 'aprobada'].includes(estado) && (
+              <label className="field">
+                Avance de la obra: {avance}%
+                <input type="range" min={0} max={100} step={5} value={avance} onChange={(e) => setAvance(Number(e.target.value))} />
+              </label>
+            )}
             <label className="field">
               Respuesta visible para los vecinos
               <textarea value={respuesta} onChange={(e) => setRespuesta(e.target.value)} placeholder="Qué se hará, quién lo hará y cuándo" />
@@ -442,7 +510,8 @@ function Informe() {
   const tabla = useTabla()
   const aprobadas = s.actividades.filter((a) => a.estado === 'aprobada')
   const asistencia = aprobadas.reduce((n, a) => n + a.asistentes, 0)
-  const resueltas = s.necesidades.filter((n) => n.estado === 'resuelta').length
+  const resueltas = s.necesidades.filter((n) => cerrada(n.estado)).length
+  const prio = prioridades(d.ivcSector).filter((p) => p.nivel === 'alta')
   const masBaja = d.brechas.at(-1)!
   const sectorBajo = SECTORES.reduce((m, x) => (d.ivcSector[x.id] < d.ivcSector[m.id] ? x : m), SECTORES[0])
   const lider = [...tabla].sort((a, b) => b.porSocio - a.porSocio)[0]
@@ -463,7 +532,8 @@ function Informe() {
         <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
           <li><b>Mayor brecha:</b> {masBaja.area.nombre}. Solo el {masBaja.pct}% de las juntas realizó actividades en esta área.</li>
           <li><b>Sector prioritario:</b> {sectorBajo.nombre}, con vitalidad {d.ivcSector[sectorBajo.id]} sobre 100.</li>
-          <li><b>Respuesta municipal:</b> {resueltas} necesidades resueltas; el tiempo promedio de respuesta es de {d.tiempo} días.</li>
+          <li><b>Prioridad territorial:</b> {prio.length ? `${prio.map((p) => p.sector.nombre).join(' y ')}: baja vitalidad comunitaria y alta vulnerabilidad social (datos de vulnerabilidad de ejemplo).` : 'ningún sector combina baja vitalidad y alta vulnerabilidad.'}</li>
+          <li><b>Respuesta municipal:</b> {resueltas} necesidades resueltas o finalizadas; el tiempo promedio de respuesta es de {d.tiempo} días.</li>
           <li><b>Juventud:</b> el {pct(d.juvComunal)} de los asistentes tiene entre 14 y 29 años; el sector con menos jóvenes es {[...d.juvSector].sort((a, b) => a.share - b.share)[0].sector.nombre}.</li>
           <li><b>Manos Vecinas:</b> {d.cumplidas.length} ayudas cumplidas entre vecinos, {d.horasAyuda} horas de voluntariado; la más pedida es {d.porCategoria[0].categoria.toLowerCase()}.</li>
           <li><b>Junta destacada:</b> {lider.junta.nombre}, primer lugar de la tabla general por puntos cada 10 socios.</li>

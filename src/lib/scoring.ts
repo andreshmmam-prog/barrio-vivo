@@ -12,7 +12,7 @@ export const REGLAS = {
   base: 50,
   participacionMax: 25, // 1 punto cada 4 asistentes, con tope
   multVerificada: 1.5,
-  alianza: 40,
+  alianza: 60,
   juvenil: 20,
   umbralJuvenil: 0.3, // 30% de asistentes de 14 a 29 años
   ayuda: 15,
@@ -155,6 +155,52 @@ export function premios(filas: FilaTabla[], modo: ModoRanking = 'porSocio'): Pre
 /** Premio Juventud: más jóvenes participando cada 10 socios. */
 export function rankingJuventud(filas: FilaTabla[]) {
   return [...filas].sort((a, b) => b.jovenesPorSocio - a.jovenesPorSocio)
+}
+
+// ---- Sellos de avance: logros absolutos que toda junta puede alcanzar ------------------
+
+export type Nivel = 'Semilla' | 'Brote' | 'Árbol' | 'Bosque'
+
+export interface NivelJunta {
+  nivel: Nivel
+  areas: number
+  meses: number
+  alianzas: number
+  docsAlDia: boolean
+  falta: string[] // qué le falta para el siguiente nivel
+}
+
+export const NIVELES: { nivel: Nivel; regla: string }[] = [
+  { nivel: 'Semilla', regla: 'Junta activa en Barrio Vivo' },
+  { nivel: 'Brote', regla: 'Actividades en al menos 1 área' },
+  { nivel: 'Árbol', regla: 'Actividad en 5 de las 7 áreas y documentos al día' },
+  { nivel: 'Bosque', regla: 'Las 7 áreas, 4 meses con actividad y 2 alianzas con otras juntas' },
+]
+
+export function nivelJunta(junta: Junta, actividades: Actividad[], documentos: Documento[]): NivelJunta {
+  const propias = actividades.filter((a) => a.juntaId === junta.id && a.estado === 'aprobada')
+  const areas = new Set(propias.map((a) => a.area)).size
+  const meses = new Set(propias.map((a) => a.fecha.slice(0, 7))).size
+  const alianzas = propias.filter((a) => a.alianzaCon).length + actividades.filter((a) => a.alianzaCon === junta.id && a.estado === 'aprobada').length
+  const docs = documentos.filter((d) => d.juntaId === junta.id)
+  const pendientes = docs.filter((d) => d.estado === 'pendiente')
+  const docsAlDia = pendientes.length === 0
+  const falta: string[] = []
+  let nivel: Nivel = 'Semilla'
+  if (areas >= 1) nivel = 'Brote'
+  if (areas >= 5 && docsAlDia) nivel = 'Árbol'
+  if (areas === 7 && meses >= 4 && alianzas >= 2 && docsAlDia) nivel = 'Bosque'
+  if (nivel === 'Semilla') falta.push('Registrar la primera actividad')
+  if (nivel === 'Brote') {
+    if (areas < 5) falta.push(`Actividad en ${5 - areas} áreas más`)
+    if (!docsAlDia) falta.push(`Subir ${pendientes.map((d) => d.tipo.toLowerCase()).join(', ')}`)
+  }
+  if (nivel === 'Árbol') {
+    if (areas < 7) falta.push(`Actividad en ${7 - areas} áreas más`)
+    if (meses < 4) falta.push(`${4 - meses} meses más con actividad`)
+    if (alianzas < 2) falta.push(`${2 - alianzas} alianzas más con otras juntas`)
+  }
+  return { nivel, areas, meses, alianzas, docsAlDia, falta }
 }
 
 export function areaMasDebil(fila: FilaTabla) {

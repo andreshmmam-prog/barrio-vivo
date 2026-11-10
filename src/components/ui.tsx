@@ -1,7 +1,7 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import { NavLink, Link } from 'react-router-dom'
 import { AREA_BY_ID, AREAS, type AreaId } from '../data/areas'
-import type { EstadoNecesidad } from '../data/types'
+import type { EstadoNecesidad, RutaNecesidad } from '../data/types'
 import { Icon } from './Icon'
 
 export function Logo({ size = 40, mono = false }: { size?: number; mono?: boolean }) {
@@ -52,13 +52,24 @@ export function Bar({ value, color = 'var(--verde)', track = 'var(--linea)', hei
   )
 }
 
-export const SEMAFORO: Record<EstadoNecesidad, { label: string; color: string; fondo: string; paso: number }> = {
-  enviada: { label: 'Enviada', color: '#8A2018', fondo: '#FBE3E0', paso: 0 },
-  recibida: { label: 'Recibida', color: '#6B4700', fondo: '#FFF4D6', paso: 1 },
-  evaluacion: { label: 'En evaluación', color: '#6B4700', fondo: '#FFF4D6', paso: 2 },
-  respondida: { label: 'Con respuesta', color: '#1D4688', fondo: '#E4ECFA', paso: 3 },
-  resuelta: { label: 'Resuelta', color: '#1D6B4E', fondo: '#E8F1EC', paso: 4 },
+export const SEMAFORO: Record<EstadoNecesidad, { label: string; color: string; fondo: string }> = {
+  enviada: { label: 'Enviada', color: '#8A2018', fondo: '#FBE3E0' },
+  recibida: { label: 'Recibida', color: '#6B4700', fondo: '#FFF4D6' },
+  evaluacion: { label: 'En evaluación', color: '#6B4700', fondo: '#FFF4D6' },
+  respondida: { label: 'Con respuesta', color: '#1D4688', fondo: '#E4ECFA' },
+  resuelta: { label: 'Resuelta', color: '#1D6B4E', fondo: '#E8F1EC' },
+  aprobada: { label: 'Obra aprobada', color: '#1D4688', fondo: '#E4ECFA' },
+  licitacion: { label: 'En licitación', color: '#1D4688', fondo: '#E4ECFA' },
+  ejecucion: { label: 'En ejecución', color: '#1D4688', fondo: '#E4ECFA' },
+  finalizada: { label: 'Obra finalizada', color: '#1D6B4E', fondo: '#E8F1EC' },
 }
+
+export const CAMINOS: Record<RutaNecesidad, { estados: EstadoNecesidad[]; pasos: string[] }> = {
+  respuesta: { estados: ['enviada', 'recibida', 'evaluacion', 'respondida', 'resuelta'], pasos: ['Enviada', 'Recibida', 'Evaluación', 'Respuesta', 'Resuelta'] },
+  proyecto: { estados: ['enviada', 'recibida', 'aprobada', 'licitacion', 'ejecucion', 'finalizada'], pasos: ['Enviada', 'Recibida', 'Aprobada', 'Licitación', 'Ejecución', 'Finalizada'] },
+}
+
+export const cerrada = (e: EstadoNecesidad) => e === 'resuelta' || e === 'finalizada'
 
 export function Semaforo({ estado }: { estado: EstadoNecesidad }) {
   const s = SEMAFORO[estado]
@@ -70,12 +81,12 @@ export function Semaforo({ estado }: { estado: EstadoNecesidad }) {
   )
 }
 
-export function PasosSemaforo({ estado }: { estado: EstadoNecesidad }) {
-  const paso = SEMAFORO[estado].paso
-  const labels = ['Enviada', 'Recibida', 'Evaluación', 'Respuesta', 'Resuelta']
+export function PasosSemaforo({ estado, ruta = 'respuesta' }: { estado: EstadoNecesidad; ruta?: RutaNecesidad }) {
+  const c = CAMINOS[ruta]
+  const paso = Math.max(0, c.estados.indexOf(estado))
   return (
-    <ol className="pasos" aria-label={`Estado: ${SEMAFORO[estado].label}`}>
-      {labels.map((l, i) => (
+    <ol className="pasos" style={{ gridTemplateColumns: `repeat(${c.pasos.length}, minmax(0, 1fr))` }} aria-label={`Estado: ${SEMAFORO[estado].label}`}>
+      {c.pasos.map((l, i) => (
         <li key={l} data-on={i <= paso ? 'true' : 'false'}>
           <span />
           {l}
@@ -210,4 +221,25 @@ export function Tabs<T extends string>({ value, onChange, options, label }: { va
 
 export function Empty({ children }: { children: ReactNode }) {
   return <p className="empty">{children}</p>
+}
+
+const SELLOS: Record<string, { fondo: string; color: string; icono: string; borde: string }> = {
+  Semilla: { fondo: '#F3F1EA', color: '#56635C', icono: 'gota', borde: '#CFCBC0' },
+  Brote: { fondo: '#CFE3D7', color: '#1D6B4E', icono: 'ambiente', borde: '#9DC8AE' },
+  'Árbol': { fondo: '#1D6B4E', color: '#FFFFFF', icono: 'ambiente', borde: '#F2B632' },
+  Bosque: { fondo: '#1E2B25', color: '#F2B632', icono: 'estrella', borde: '#F2B632' },
+}
+
+/** Sello circular de nivel (Junta Viva). */
+export function SelloNivel({ nivel, size = 48 }: { nivel: string; size?: number }) {
+  const s = SELLOS[nivel] ?? SELLOS.Semilla
+  return (
+    <span
+      role="img"
+      aria-label={`Nivel ${nivel}`}
+      style={{ width: size, height: size, borderRadius: size / 2, background: s.fondo, color: s.color, border: `3px solid ${s.borde}`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+    >
+      <Icon name={s.icono} size={Math.round(size * 0.45)} />
+    </span>
+  )
 }

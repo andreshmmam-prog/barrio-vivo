@@ -12,6 +12,7 @@ import type {
   Documento,
   Emprendedor,
   EstadoNecesidad,
+  RutaNecesidad,
   Junta,
   Necesidad,
   Propuesta,
@@ -59,7 +60,9 @@ type Accion =
   | { t: 'votar'; id: string; opcion: number; vecinoId: string }
   | { t: 'apoyar'; id: string }
   | { t: 'nuevaNecesidad'; n: Necesidad }
-  | { t: 'estadoNecesidad'; id: string; estado: EstadoNecesidad; respuesta?: string }
+  | { t: 'estadoNecesidad'; id: string; estado: EstadoNecesidad; respuesta?: string; ruta?: RutaNecesidad; avance?: number }
+  | { t: 'fusionar'; origen: string; destino: string }
+  | { t: 'cargarVotos'; id: string; votos: number[] }
   | { t: 'comentarNecesidad'; id: string; autor: string; texto: string }
   | { t: 'nuevaActividad'; a: Actividad }
   | { t: 'validar'; id: string; ok: boolean }
@@ -108,7 +111,28 @@ function reducer(s: Estado, a: Accion): Estado {
     case 'estadoNecesidad':
       return {
         ...s,
-        necesidades: s.necesidades.map((n) => (n.id === a.id ? { ...n, estado: a.estado, respuesta: a.respuesta ?? n.respuesta, actualizada: D.HOY } : n)),
+        necesidades: s.necesidades.map((n) =>
+          n.id === a.id ? { ...n, estado: a.estado, respuesta: a.respuesta ?? n.respuesta, ruta: a.ruta ?? n.ruta, avance: a.avance ?? n.avance, actualizada: D.HOY } : n,
+        ),
+      }
+    case 'fusionar': {
+      const o = s.necesidades.find((n) => n.id === a.origen)
+      if (!o || a.origen === a.destino) return s
+      return {
+        ...s,
+        necesidades: s.necesidades
+          .filter((n) => n.id !== a.origen)
+          .map((n) =>
+            n.id === a.destino
+              ? { ...n, apoyos: n.apoyos + o.apoyos, apoyada: n.apoyada || o.apoyada, comentarios: [...n.comentarios, ...o.comentarios], fusionadas: [...(n.fusionadas ?? []), o.titulo] }
+              : n,
+          ),
+      }
+    }
+    case 'cargarVotos':
+      return {
+        ...s,
+        consultas: s.consultas.map((c) => (c.id === a.id ? { ...c, opciones: c.opciones.map((o, i) => ({ ...o, votos: o.votos + (a.votos[i] ?? 0) })) } : c)),
       }
     case 'comentarNecesidad':
       return {
@@ -200,7 +224,7 @@ function reducer(s: Estado, a: Accion): Estado {
   }
 }
 
-const CLAVE = 'barrio-vivo-demo-v2'
+const CLAVE = 'barrio-vivo-demo-v3'
 
 function cargar(): Estado {
   try {

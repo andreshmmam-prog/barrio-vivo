@@ -4,9 +4,9 @@ import { AREAS, AREA_BY_ID } from '../../data/areas'
 import { EMERGENCIAS, TEMPORADA } from '../../data/demo'
 import { Icon } from '../../components/Icon'
 import { AlertaCard, NuevaAlertaModal } from '../../components/comunidad'
-import { AreaChip, Chip, Logo } from '../../components/ui'
-import { useTabla, useVecino } from '../../lib/hooks'
-import { areaMasDebil, esVerificada, fechaCorta, miles, ordenar, puntosPorActividad } from '../../lib/scoring'
+import { AreaChip, Chip, Logo, SelloNivel } from '../../components/ui'
+import { useNiveles, useTabla, useVecino } from '../../lib/hooks'
+import { areaMasDebil, esVerificada, fechaCorta, miles, puntosPorActividad } from '../../lib/scoring'
 import { useStore } from '../../state/store'
 
 export default function Inicio() {
@@ -15,7 +15,7 @@ export default function Inicio() {
   const v = useVecino()
   const junta = v.junta
   const fila = tabla.find((f) => f.junta.id === junta.id)!
-  const pos = ordenar(tabla, 'porSocio').findIndex((f) => f.junta.id === junta.id) + 1
+  const nivel = useNiveles().get(junta.id)!
   const debil = areaMasDebil(fila)
   const fuertes = [...AREAS].sort((a, b) => fila.porArea[b.id] - fila.porArea[a.id]).slice(0, 2)
   const pts = puntosPorActividad(s.actividades)
@@ -50,9 +50,9 @@ export default function Inicio() {
             <p className="small muted">Puntos de tu junta · {TEMPORADA.nombre}</p>
             <p className="num" style={{ fontSize: 30 }}>{miles(fila.total)}</p>
           </div>
-          <div style={{ background: 'var(--sol)', borderRadius: 14, padding: '8px 12px', textAlign: 'center' }}>
-            <p className="xs bold">Tabla general</p>
-            <p className="num" style={{ fontSize: 20 }}>{pos}° lugar</p>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+            <SelloNivel nivel={nivel.nivel} size={52} />
+            <p className="xs bold">Nivel {nivel.nivel}</p>
           </div>
         </div>
         <div className="franja" aria-hidden="true">

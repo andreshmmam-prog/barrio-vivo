@@ -13,16 +13,18 @@ Todavía no tiene base de datos ni inicio de sesión real.
 
 | Perfil | Tipo | Qué puede hacer |
 | --- | --- | --- |
-| Vecino | App móvil | El Queltehue avisa, emergencias, Manos Vecinas (ayudas, voluntariado y sección jóvenes), consultas y necesidades con semáforo, tabla y premios, perfil con horas certificadas, insignias y comunidades |
-| Directiva | App móvil | Panel con radar, índice de vitalidad y jóvenes, registrar actividades con público objetivo, fotos y QR, aprobar propuestas juveniles, avisos oficiales, resumen semanal para WhatsApp, documentos, socios por tramo y traspaso de directiva |
+| Vecino | App móvil | El Queltehue avisa, emergencias, Manos Vecinas (ayudas, voluntariado y sección jóvenes), consultas y necesidades con semáforo (respuesta u obra con avance), sellos de avance, tabla por liga y premios, perfil con horas certificadas, insignias y comunidades |
+| Directiva | App móvil | Panel con radar, índice de vitalidad y jóvenes, registrar actividades con público objetivo, fotos y QR o lista en papel, unir necesidades iguales, cargar votos y necesidades de la asamblea, aprobar propuestas juveniles, avisos oficiales, resumen semanal para WhatsApp, documentos, socios por tramo y traspaso de directiva |
 | Administración | Panel web | Validar actividades, incorporar juntas, premiación (7 áreas + Premio Juventud), moderación y reglas |
-| Municipio | Panel web | Vitalidad por sector, brechas por área, participación juvenil, Manos Vecinas, alertas, responder necesidades e informe al concejo |
+| Municipio | Panel web | Vitalidad por sector, prioridad territorial (vitalidad × vulnerabilidad), brechas por área, participación juvenil, Manos Vecinas, alertas, responder necesidades e informe al concejo |
 
 En el perfil Vecino puedes entrar como Marta (52 años, socia) o como Javiera (22 años, embajadora digital) para ver la experiencia adulta y la joven.
 
 ## Cómo se ganan puntos
 
-Cada actividad suma; si es verificada, con otra junta o con jóvenes, suma más. Cada ayuda cumplida en Manos Vecinas suma en Social y Solidaridad.
+Cada actividad suma; si es verificada (QR o lista firmada en papel), con otra junta (+60) o con jóvenes, suma más. Cada ayuda cumplida en Manos Vecinas suma en Social y Solidaridad.
+
+Lo primero que ve una junta es su sello de avance: Semilla, Brote, Árbol o Bosque. La tabla compara solo dentro de cada liga, por puntos cada 10 socios. Los premios son reconocimiento y nunca fondos ni recursos municipales.
 
 ## Las 7 áreas
 
